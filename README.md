@@ -1,82 +1,36 @@
-# CyberUndo — Project Overview & Backend Foundation
+# CyberUndo — “Ctrl + Z for Cybersecurity”
 
-> **"What if cybersecurity had Ctrl + Z?"**  
-> CyberUndo is a reversible-action cybersecurity platform. This repository contains the complete backend core, database foundation, authentication engine, file management system, and integration contracts for the team.
+An interactive, dark-mode cybersecurity product prototype demonstrating instant blast radius containment and file access revocation.
 
----
+## Key Features & Flow
 
-## 1. Team Responsibilities & Boundaries
+1. **Share File**:
+   - `Project_Final.pdf` → `Person A` (`alex.morgan@partnercorp.io`)
+   - Instant token generation & tracking activation
 
-| Member | Focus Area | Status |
-|---|---|---|
-| **Member 1 (Current Module)** | **Backend + Database + Auth + File System + Integration** | **Complete** |
-| **Member 2** | Secure Sharing + Revoke Engine | Downstream Module (Plugs into `SharedAccess`) |
-| **Member 3** | Frontend + UI/UX | Consumes REST APIs at `/api/*` |
-| **Member 4** | Blast Radius + Risk Engine + Activity Tracking | Downstream Module (Plugs into `ActivityLogs`) |
+2. **Activity Tracking**:
+   - `SHARED` → `VIEWED` → `DOWNLOADED` (3x propagation)
+   - Real-time audit telemetry logs with geo-IP tracking
 
-> **Scope Clarification**: Member 1 provides the infrastructure, data schema, secure file storage, JWT auth, and blueprint hooks. Member 1 does **NOT** implement sharing/revocation logic, frontend views, or risk/activity telemetry engines.
+3. **Blast Radius Analysis**:
+   - Lineage: `You → Person A → 3 Downloads`
+   - Real-time threat indicator: `Exposure: HIGH`
 
----
+4. **Undo Killswitch (Revoke Access)**:
+   - Red **REVOKE ACCESS** button with live glow animation
+   - Keyboard shortcut: **`Ctrl + Z`** (or `Cmd + Z`) anytime
 
-## 2. Quickstart & Setup Guide
+5. **Remediation Result**:
+   - `ACCESS REVOKED`: Active socket sessions severed at the edge proxy
+   - `LINK INVALIDATED`: Signed URL rendered `403 Forbidden`
+   - `Exposure: CONTAINED / ZERO RISK`
 
-### 1. Prerequisites
-- Python 3.9+ installed
-- pip
+## How to Run
 
-### 2. Environment Setup & Dependency Installation
+Simply double-click [`index.html`](./index.html) to open in Google Chrome, Microsoft Edge, Firefox, or any modern web browser.
+
+Alternatively, serve locally using Python:
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# On Windows:
-.\venv\Scripts\activate
-# On macOS / Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+python -m http.server 8080 --directory "C:\Users\Balakrishnan\.gemini\antigravity\scratch\cyberundo-prototype"
 ```
-
-### 3. Start the Flask Backend
-```bash
-python app.py
-```
-
-* **Backend Base URL**: `http://127.0.0.1:5000`
-* **API Base URL**: `http://127.0.0.1:5000/api`
-* **Health Check**: `GET http://127.0.0.1:5000/api/health`
-
-### 4. Run Automated Test Suite
-```bash
-pytest test_api.py -v
-```
-
----
-
-## 3. Implemented API Endpoints (Member 1)
-
-| HTTP Method | Endpoint | Auth | Purpose |
-|---|---|:---:|---|
-| `GET` | `/api/health` | None | Verify backend service health |
-| `POST` | `/api/register` | None | Register new user account with hashed password |
-| `POST` | `/api/login` | None | Authenticate user and receive signed JWT |
-| `GET` | `/api/auth/me` | Bearer | Get authenticated user profile |
-| `POST` | `/api/files/upload` | Bearer | Upload file (multipart/form-data, 16MB max) |
-| `GET` | `/api/files` | Bearer | List files owned by authenticated user |
-| `GET` | `/api/files/<id>` | Bearer | Get metadata for specific file (ownership verified) |
-| `GET` | `/api/files/<id>/download` | Bearer | Download physical file (ownership verified) |
-
-For complete payload formats, schema definitions, and cURL examples, see [API_CONTRACT.md](./API_CONTRACT.md).
-
----
-
-## 4. Integration Blueprint for Teammates
-
-- **Member 2 (Sharing/Revoke)**: Import `SharedAccess`, `File`, `User` from `models.py` and register routes in `routes/share_routes.py`.
-- **Member 3 (Frontend)**: Connect frontend app to `http://127.0.0.1:5000/api`. CORS is enabled for all origins.
-- **Member 4 (Risk/Activity)**: Import `ActivityLog`, `SharedAccess`, and `File` from `models.py` to write logs and calculate blast radius metrics.
+and open `http://localhost:8080` in your browser.
