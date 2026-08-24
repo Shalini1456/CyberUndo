@@ -111,7 +111,9 @@ def create_app(config_class=Config):
     return app
 
 
+# WSGI application entrypoint for Gunicorn (e.g. gunicorn app:app)
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
