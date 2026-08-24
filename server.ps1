@@ -25,6 +25,9 @@ while ($true) {
                 }
 
                 $filePath = Join-Path $path $urlPath
+                if (-not (Test-Path $filePath -PathType Leaf) -and (Test-Path ($filePath + ".html") -PathType Leaf)) {
+                    $filePath = $filePath + ".html"
+                }
 
                 if (Test-Path $filePath -PathType Leaf) {
                     $bytes = [System.IO.File]::ReadAllBytes($filePath)

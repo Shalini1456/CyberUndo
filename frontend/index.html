@@ -285,6 +285,49 @@
             <span id="btnShareText">SHARE FILE (Project_Final.pdf → Person A)</span>
           </button>
 
+          <!-- Generated Share Link Card (Shown when Shared) -->
+          <div id="shareLinkContainer" class="hidden mt-4 p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/40 space-y-2.5 animate-fade-in font-mono text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-cyan-300 font-bold flex items-center gap-1.5 text-[11px]">
+                <i data-lucide="link" class="w-3.5 h-3.5 text-cyan-400"></i>
+                MVP RECIPIENT SHARE LINK
+              </span>
+              <span class="text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">
+                Cross-Tab Sync
+              </span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <input 
+                type="text" 
+                id="shareLinkInput" 
+                readonly 
+                class="flex-1 bg-slate-900 border border-slate-700 px-2.5 py-1.5 rounded-lg text-slate-300 text-[11px] select-all focus:outline-none"
+              />
+              <button 
+                onclick="copyShareLink()" 
+                id="btnCopyShareLink"
+                class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1 text-[11px]"
+                title="Copy share link">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span id="copyBtnLabel">Copy</span>
+              </button>
+              <a 
+                id="btnOpenRecipientView" 
+                href="#" 
+                target="_blank" 
+                class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition flex items-center gap-1 text-[11px] shadow-sm shadow-cyan-600/30"
+                title="Open recipient view in new tab">
+                <span>Open View</span>
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+
+            <p class="text-[10px] text-slate-400 font-sans">
+              💡 Open this link in another tab or incognito to simulate <b>Person A</b>. When you view or download from that tab, this dashboard updates in real-time.
+            </p>
+          </div>
+
           <p class="text-[11px] text-slate-500 text-center mt-2.5 font-mono">
             Clicking share will generate an active trackable link and simulate real-time propagation.
           </p>

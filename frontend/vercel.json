@@ -3,6 +3,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/share",
+      "destination": "/share.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

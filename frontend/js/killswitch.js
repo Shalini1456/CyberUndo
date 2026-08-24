@@ -10,6 +10,7 @@ const STATE = {
 class KillSwitchManager {
   constructor() {
     this.currentState = STATE.IDLE;
+    this.currentShareId = null;
     this.activeFile = {
       id: 0,
       filename: "Project_Final.pdf",
@@ -19,10 +20,13 @@ class KillSwitchManager {
     this.propagationTimer1 = null;
     this.propagationTimer2 = null;
     this.propagationTimer3 = null;
+    this.syncInterval = null;
+    this.lastProcessedDownloadCount = 0;
   }
 
   init() {
     this.setupHotkeys();
+    this.setupCrossTabListener();
     this.updateUI();
   }
 
@@ -66,6 +70,46 @@ class KillSwitchManager {
         }
       }
     });
+  }
+
+  setupCrossTabListener() {
+    window.addEventListener('storage', (e) => {
+      this.handleExternalStorageEvent();
+    });
+
+    // Fallback interval to catch same-tab/incognito events smoothly
+    if (this.syncInterval) clearInterval(this.syncInterval);
+    this.syncInterval = setInterval(() => {
+      if (this.currentState === STATE.SHARING || this.currentState === STATE.ACTIVE_THREAT) {
+        this.handleExternalStorageEvent();
+      }
+    }, 600);
+  }
+
+  handleExternalStorageEvent() {
+    if (!this.currentShareId) return;
+    const rawData = localStorage.getItem('cyberundo_share_' + this.currentShareId) || localStorage.getItem('cyberundo_active_share');
+    if (!rawData) return;
+
+    try {
+      const share = JSON.parse(rawData);
+
+      // If remote tab triggered View
+      if (share.viewed && this.currentState !== STATE.REVOKED) {
+        const badgeViewedTime = document.getElementById('badgeViewedTime');
+        if (badgeViewedTime && badgeViewedTime.innerText === 'Pending') {
+          this.triggerViewedState(true);
+        }
+      }
+
+      // If remote tab triggered Download
+      if (share.downloadCount > this.lastProcessedDownloadCount && this.currentState !== STATE.REVOKED) {
+        this.lastProcessedDownloadCount = share.downloadCount;
+        this.triggerDownloadState(share.downloadCount, true);
+      }
+    } catch (e) {
+      console.warn("Storage sync error:", e);
+    }
   }
 
   flashRevokedNotice() {
@@ -125,6 +169,8 @@ class KillSwitchManager {
     if (this.currentState !== STATE.IDLE) return;
     
     this.currentState = STATE.SHARING;
+    this.lastProcessedDownloadCount = 0;
+    this.currentShareId = 'cu-share-' + Math.random().toString(36).substring(2, 9);
     soundEngine.play('share');
 
     const btnShare = document.getElementById('btnShare');
@@ -165,58 +211,133 @@ class KillSwitchManager {
       document.getElementById('activityLiveIndicator').classList.remove('hidden');
       document.getElementById('activityLiveIndicator').classList.add('flex');
 
+      // Generate Share URL and populate share link container
+      const origin = window.location.origin;
+      const pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+      const shareUrl = `${origin}${pathname}/share.html?id=${this.currentShareId}`;
+      
+      const shareLinkContainer = document.getElementById('shareLinkContainer');
+      const shareLinkInput = document.getElementById('shareLinkInput');
+      const btnOpenRecipientView = document.getElementById('btnOpenRecipientView');
+
+      if (shareLinkContainer) shareLinkContainer.classList.remove('hidden');
+      if (shareLinkInput) shareLinkInput.value = shareUrl;
+      if (btnOpenRecipientView) btnOpenRecipientView.href = shareUrl;
+
+      // Persist active share in localStorage for cross-tab recipient sync
+      const ownerUser = (window.authManager && authManager.getUser()) || {};
+      const shareData = {
+        id: this.currentShareId,
+        fileId: this.activeFile.id,
+        filename: this.activeFile.filename,
+        fileSize: "2.4 MB",
+        ownerName: ownerUser.name || "Security Lead",
+        ownerEmail: ownerUser.email || "lead@cyberundo.io",
+        recipientName: "Person A",
+        recipientEmail: "alex.morgan@partnercorp.io",
+        status: "ACTIVE",
+        viewed: false,
+        downloadCount: 0,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('cyberundo_share_' + this.currentShareId, JSON.stringify(shareData));
+      localStorage.setItem('cyberundo_active_share', JSON.stringify(shareData));
+
       // Immediately enable REVOKE ACCESS button so user can revoke at any time
       this.activateRevokeButton();
 
       // Begin background progression
       this.simulateRapidProgression();
+      lucide.createIcons();
     }, 500);
+  }
+
+  triggerViewedState(fromCrossTab = false) {
+    if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
+
+    soundEngine.play('share');
+    this.updateStepPills(2);
+
+    const badgeViewed = document.getElementById('badgeViewed');
+    if (badgeViewed) {
+      badgeViewed.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-blue-950/80 border border-blue-500/60 text-blue-300 transition-all';
+    }
+    const badgeTime = document.getElementById('badgeViewedTime');
+    if (badgeTime) badgeTime.innerText = '00:00:03';
+
+    const nowTime = new Date().toTimeString().split(' ')[0];
+    const sourceLabel = fromCrossTab ? '<b>Person A</b> (via Recipient View Tab)' : '<b>Person A</b> (Chrome on macOS, IP: 198.51.100.24, SF)';
+    this.addLogEntry(nowTime, `${sourceLabel} opened and viewed access link`, 'viewed');
+
+    const ep1 = document.getElementById('endpoint1');
+    if (ep1) {
+      ep1.classList.remove('opacity-50');
+      ep1.classList.add('border-blue-500/40', 'bg-blue-950/20');
+      const pill = ep1.querySelector('.status-pill');
+      if (pill) {
+        pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-600 animate-pulse';
+        pill.innerText = 'Viewing';
+      }
+    }
+    lucide.createIcons();
+  }
+
+  triggerDownloadState(count = 1, fromCrossTab = false) {
+    if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
+
+    soundEngine.play('share');
+
+    const badgeDownloaded = document.getElementById('badgeDownloaded');
+    if (badgeDownloaded) {
+      badgeDownloaded.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-amber-300 transition-all';
+    }
+    const badgeTime = document.getElementById('badgeDownloadedTime');
+    if (badgeTime) badgeTime.innerText = `00:00:06 (${count}x)`;
+
+    const nowTime = new Date().toTimeString().split(' ')[0];
+    const sourceLabel = fromCrossTab ? `Download #${count} triggered by <b>Person A</b> (Recipient Portal)` : `Download #${count} initiated by <b>Person A</b> (MacBook Pro)`;
+    this.addLogEntry(nowTime, sourceLabel, 'download');
+
+    const ep1 = document.getElementById('endpoint1');
+    if (ep1) {
+      const pill = ep1.querySelector('.status-pill');
+      if (pill) {
+        pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
+        pill.innerText = 'Downloaded';
+      }
+    }
+
+    const conn2 = document.getElementById('connectorLine2');
+    const arrow2 = document.getElementById('connectorArrow2');
+    if (conn2) conn2.className = 'h-0.5 w-full bg-amber-500 laser-line-active';
+    if (arrow2) arrow2.className = 'w-4 h-4 text-amber-400 absolute';
+    
+    const nodeSubtitle = document.getElementById('downloadsNodeSubtitle');
+    if (nodeSubtitle) nodeSubtitle.innerText = `${count} active node${count === 1 ? '' : 's'}`;
+    const formula = document.getElementById('propagationFormula');
+    if (formula) formula.innerText = `You → Person A → ${count} Download${count === 1 ? '' : 's'}`;
+    const activeSessions = document.getElementById('activeSessionsCount');
+    if (activeSessions) activeSessions.innerText = `${count} Active Session${count === 1 ? '' : 's'}`;
+
+    lucide.createIcons();
   }
 
   simulateRapidProgression() {
     this.propagationTimer1 = setTimeout(() => {
       if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
-      
-      soundEngine.play('share');
-      this.updateStepPills(2);
-
-      const badgeViewed = document.getElementById('badgeViewed');
-      badgeViewed.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-blue-950/80 border border-blue-500/60 text-blue-300 transition-all';
-      document.getElementById('badgeViewedTime').innerText = '00:00:03';
-
-      const nowTime = new Date().toTimeString().split(' ')[0];
-      this.addLogEntry(nowTime, '<b>Person A</b> opened access link in Chrome on macOS (IP: 198.51.100.24, San Francisco)', 'viewed');
-
-      const ep1 = document.getElementById('endpoint1');
-      ep1.classList.remove('opacity-50');
-      ep1.classList.add('border-blue-500/40', 'bg-blue-950/20');
-      ep1.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-600 animate-pulse';
-      ep1.querySelector('.status-pill').innerText = 'Viewing';
-    }, 1200);
+      const badgeTime = document.getElementById('badgeViewedTime');
+      if (badgeTime && badgeTime.innerText === 'Pending') {
+        this.triggerViewedState(false);
+      }
+    }, 1500);
 
     this.propagationTimer2 = setTimeout(() => {
       if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
-      
-      soundEngine.play('share');
-
-      const badgeDownloaded = document.getElementById('badgeDownloaded');
-      badgeDownloaded.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-amber-300 transition-all';
-      document.getElementById('badgeDownloadedTime').innerText = '00:00:06 (1x)';
-
-      const nowTime = new Date().toTimeString().split(' ')[0];
-      this.addLogEntry(nowTime, 'Download #1 initiated by <b>Person A</b> (MacBook Pro)', 'download');
-
-      const ep1 = document.getElementById('endpoint1');
-      ep1.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
-      ep1.querySelector('.status-pill').innerText = 'Downloaded';
-
-      document.getElementById('connectorLine2').className = 'h-0.5 w-full bg-amber-500 laser-line-active';
-      document.getElementById('connectorArrow2').className = 'w-4 h-4 text-amber-400 absolute';
-      
-      document.getElementById('downloadsNodeSubtitle').innerText = '1 active node';
-      document.getElementById('propagationFormula').innerText = 'You → Person A → 1 Download';
-      document.getElementById('activeSessionsCount').innerText = '1 Active Session';
-    }, 2400);
+      const badgeTime = document.getElementById('badgeDownloadedTime');
+      if (badgeTime && badgeTime.innerText === 'Pending') {
+        this.triggerDownloadState(1, false);
+      }
+    }, 3000);
 
     this.propagationTimer3 = setTimeout(() => {
       if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
@@ -225,55 +346,90 @@ class KillSwitchManager {
       soundEngine.play('threat');
       this.updateStepPills(3);
 
-      document.getElementById('badgeDownloadedTime').innerText = '00:00:09 (3x)';
+      const badgeTime = document.getElementById('badgeDownloadedTime');
+      if (badgeTime) badgeTime.innerText = '00:00:09 (3x)';
       
       const nowTime = new Date().toTimeString().split(' ')[0];
       this.addLogEntry(nowTime, '⚠️ Link forwarded! Download #2 from Windows 11 (IP: 203.0.113.45, Frankfurt)', 'threat');
       this.addLogEntry(nowTime, '🚨 Download #3 from Unverified Cloud Node (IP: 192.0.2.89, Singapore)', 'threat');
 
       const ep2 = document.getElementById('endpoint2');
-      ep2.classList.remove('opacity-50');
-      ep2.classList.add('border-amber-500/40', 'bg-amber-950/20');
-      ep2.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
-      ep2.querySelector('.status-pill').innerText = 'Downloaded';
+      if (ep2) {
+        ep2.classList.remove('opacity-50');
+        ep2.classList.add('border-amber-500/40', 'bg-amber-950/20');
+        const pill = ep2.querySelector('.status-pill');
+        if (pill) {
+          pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
+          pill.innerText = 'Downloaded';
+        }
+      }
 
       const ep3 = document.getElementById('endpoint3');
-      ep3.classList.remove('opacity-50');
-      ep3.classList.add('border-red-500/40', 'bg-red-950/20');
-      ep3.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-600 animate-pulse';
-      ep3.querySelector('.status-pill').innerText = 'External Leak';
+      if (ep3) {
+        ep3.classList.remove('opacity-50');
+        ep3.classList.add('border-red-500/40', 'bg-red-950/20');
+        const pill = ep3.querySelector('.status-pill');
+        if (pill) {
+          pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-600 animate-pulse';
+          pill.innerText = 'External Leak';
+        }
+      }
 
       const blastSection = document.getElementById('blastRadiusSection');
-      blastSection.classList.add('glass-card-glow-danger');
+      if (blastSection) blastSection.classList.add('glass-card-glow-danger');
 
       const exposureBadge = document.getElementById('exposureBadge');
-      exposureBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-red-950 text-red-400 border border-red-500 animate-pulse';
-      document.getElementById('exposureText').innerText = 'Exposure: HIGH';
-      document.getElementById('exposureIcon').setAttribute('data-lucide', 'alert-octagon');
+      if (exposureBadge) {
+        exposureBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-red-950 text-red-400 border border-red-500 animate-pulse';
+      }
+      const expText = document.getElementById('exposureText');
+      if (expText) expText.innerText = 'Exposure: HIGH';
+      const expIcon = document.getElementById('exposureIcon');
+      if (expIcon) expIcon.setAttribute('data-lucide', 'alert-octagon');
 
-      document.getElementById('blastRadiusSummary').innerText = '3 Endpoints Compromised';
-      document.getElementById('blastRadiusSummary').className = 'text-red-400 font-mono font-bold';
+      const blastSummary = document.getElementById('blastRadiusSummary');
+      if (blastSummary) {
+        blastSummary.innerText = '3 Endpoints Compromised';
+        blastSummary.className = 'text-red-400 font-mono font-bold';
+      }
 
-      document.getElementById('downloadsIconBg').className = 'w-9 h-9 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-1.5 border border-red-500/40';
-      document.getElementById('downloadsNodeTitle').className = 'text-xs font-bold text-red-400 font-mono';
-      document.getElementById('downloadsNodeSubtitle').innerText = '3 active downloads';
-      document.getElementById('downloadsNodeSubtitle').className = 'text-[10px] text-red-300 font-mono';
+      const dlIconBg = document.getElementById('downloadsIconBg');
+      if (dlIconBg) {
+        dlIconBg.className = 'w-9 h-9 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-1.5 border border-red-500/40';
+      }
+      const dlTitle = document.getElementById('downloadsNodeTitle');
+      if (dlTitle) dlTitle.className = 'text-xs font-bold text-red-400 font-mono';
+      const dlSubtitle = document.getElementById('downloadsNodeSubtitle');
+      if (dlSubtitle) {
+        dlSubtitle.innerText = '3 active downloads';
+        dlSubtitle.className = 'text-[10px] text-red-300 font-mono';
+      }
 
-      document.getElementById('propagationFormula').innerText = 'You → Person A → 3 Downloads';
-      document.getElementById('propagationFormula').className = 'px-2.5 py-1 rounded bg-red-950/80 text-red-300 border border-red-500/50 font-bold';
+      const formula = document.getElementById('propagationFormula');
+      if (formula) {
+        formula.innerText = 'You → Person A → 3 Downloads';
+        formula.className = 'px-2.5 py-1 rounded bg-red-950/80 text-red-300 border border-red-500/50 font-bold';
+      }
 
-      document.getElementById('activeSessionsCount').innerText = '3 Active Sessions Detected';
-      document.getElementById('activeSessionsCount').className = 'text-red-400 font-bold';
+      const activeSessions = document.getElementById('activeSessionsCount');
+      if (activeSessions) {
+        activeSessions.innerText = '3 Active Sessions Detected';
+        activeSessions.className = 'text-red-400 font-bold';
+      }
 
-      document.getElementById('connectorLine2').className = 'h-0.5 w-full bg-red-500 laser-line-danger';
-      document.getElementById('connectorArrow2').className = 'w-4 h-4 text-red-400 absolute';
+      const conn2 = document.getElementById('connectorLine2');
+      const arrow2 = document.getElementById('connectorArrow2');
+      if (conn2) conn2.className = 'h-0.5 w-full bg-red-500 laser-line-danger';
+      if (arrow2) arrow2.className = 'w-4 h-4 text-red-400 absolute';
 
-      document.getElementById('topStatusText').innerText = 'CRITICAL THREAT — 3 DOWNLOADS DETECTED';
-      document.getElementById('topStatusDot').className = 'w-2 h-2 rounded-full bg-red-500 animate-ping';
+      const topText = document.getElementById('topStatusText');
+      if (topText) topText.innerText = 'CRITICAL THREAT — 3 DOWNLOADS DETECTED';
+      const topDot = document.getElementById('topStatusDot');
+      if (topDot) topDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-ping';
 
       this.activateRevokeButton();
       lucide.createIcons();
-    }, 3600);
+    }, 4500);
   }
 
   activateRevokeButton() {
@@ -315,6 +471,20 @@ class KillSwitchManager {
 
     document.body.classList.add('revoke-shockwave');
     setTimeout(() => document.body.classList.remove('revoke-shockwave'), 600);
+
+    // Update shared state in localStorage to REVOKED so recipient tab locks immediately
+    if (this.currentShareId) {
+      const rawData = localStorage.getItem('cyberundo_share_' + this.currentShareId) || localStorage.getItem('cyberundo_active_share');
+      let shareData = {};
+      if (rawData) {
+        try { shareData = JSON.parse(rawData); } catch(e) {}
+      }
+      shareData.status = 'REVOKED';
+      shareData.revokedAt = new Date().toISOString();
+      localStorage.setItem('cyberundo_share_' + this.currentShareId, JSON.stringify(shareData));
+      localStorage.setItem('cyberundo_active_share', JSON.stringify(shareData));
+      window.dispatchEvent(new Event('storage'));
+    }
 
     // 1. Update File Badge State
     const fileBadgeState = document.getElementById('fileBadgeState');
@@ -535,7 +705,12 @@ class KillSwitchManager {
     if (this.propagationTimer3) { clearTimeout(this.propagationTimer3); this.propagationTimer3 = null; }
 
     this.currentState = STATE.IDLE;
+    this.currentShareId = null;
+    this.lastProcessedDownloadCount = 0;
     if (playSoundEffect) soundEngine.play('share');
+
+    const shareLinkContainer = document.getElementById('shareLinkContainer');
+    if (shareLinkContainer) shareLinkContainer.classList.add('hidden');
 
     const btnShare = document.getElementById('btnShare');
     const btnShareText = document.getElementById('btnShareText');
@@ -682,5 +857,28 @@ class KillSwitchManager {
     lucide.createIcons();
   }
 }
+
+// Global helper for copying share link
+window.copyShareLink = function() {
+  const input = document.getElementById('shareLinkInput');
+  const label = document.getElementById('copyBtnLabel');
+  if (input && input.value) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      if (label) label.innerText = 'Copied!';
+      window.toast && window.toast.success('Share link copied to clipboard!');
+      setTimeout(() => {
+        if (label) label.innerText = 'Copy';
+      }, 2000);
+    }).catch(() => {
+      input.select();
+      document.execCommand('copy');
+      if (label) label.innerText = 'Copied!';
+      window.toast && window.toast.success('Share link copied!');
+      setTimeout(() => {
+        if (label) label.innerText = 'Copy';
+      }, 2000);
+    });
+  }
+};
 
 window.killSwitchManager = new KillSwitchManager();
