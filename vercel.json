@@ -3,16 +3,20 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/share/(.*)",
-      "destination": "/frontend/share.html?id=$1"
+      "source": "/share/:id*",
+      "destination": "/share.html"
     },
     {
       "source": "/share",
+      "destination": "/share.html"
+    },
+    {
+      "source": "/frontend/share/:id*",
       "destination": "/frontend/share.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "source": "/frontend/share",
+      "destination": "/frontend/share.html"
     }
   ]
 }

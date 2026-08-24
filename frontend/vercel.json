@@ -3,8 +3,8 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/share/(.*)",
-      "destination": "/share.html?id=$1"
+      "source": "/share/:id*",
+      "destination": "/share.html"
     },
     {
       "source": "/share",
