@@ -206,7 +206,24 @@
   <script>
     // Recipient Page Controller
     const urlParams = new URLSearchParams(window.location.search);
-    const shareId = urlParams.get('id') || 'demo';
+    let shareId = urlParams.get('id');
+    if (!shareId && window.location.pathname) {
+      const match = window.location.pathname.match(/\/share\/([^\/\?#]+)/);
+      if (match && match[1]) {
+        shareId = match[1];
+      }
+    }
+    if (!shareId) {
+      try {
+        const active = localStorage.getItem('cyberundo_active_share');
+        if (active) {
+          const parsed = JSON.parse(active);
+          if (parsed && parsed.id) shareId = parsed.id;
+        }
+      } catch(e) {}
+    }
+    if (!shareId) shareId = 'cu-share-demo';
+
     const STORAGE_KEY = 'cyberundo_share_' + shareId;
     const GLOBAL_ACTIVE_KEY = 'cyberundo_active_share';
 

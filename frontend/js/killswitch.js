@@ -165,68 +165,8 @@ class KillSwitchManager {
     if (logCountEl) logCountEl.innerText = `${count} event${count === 1 ? '' : 's'}`;
   }
 
-  handleShareFile() {
-    if (this.currentState !== STATE.IDLE) return;
-    
-    this.currentState = STATE.SHARING;
-    this.lastProcessedDownloadCount = 0;
-    this.currentShareId = 'cu-share-' + Math.random().toString(36).substring(2, 9);
-    soundEngine.play('share');
-
-    const btnShare = document.getElementById('btnShare');
-    const btnShareText = document.getElementById('btnShareText');
-    const shareCard = document.getElementById('shareFileCard');
-    const fileBadgeState = document.getElementById('fileBadgeState');
-
-    btnShare.disabled = true;
-    btnShare.classList.remove('from-cyan-600', 'to-blue-600', 'hover:from-cyan-500');
-    btnShare.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
-    btnShareText.innerHTML = `<span class="inline-block animate-spin mr-2">⟳</span> GENERATING SECURE TOKEN...`;
-
-    shareCard.classList.add('glass-card-glow-cyan');
-    fileBadgeState.innerText = 'Sharing...';
-    fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-950 text-cyan-300 border border-cyan-500/40';
-
-    this.updateStepPills(1);
-
-    setTimeout(() => {
-      btnShareText.innerHTML = `✓ SHARED WITH PERSON A`;
-      fileBadgeState.innerText = 'Active Link';
-      fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-950 text-emerald-300 border border-emerald-500/40';
-
-      document.getElementById('topStatusText').innerText = 'LINK ACTIVE — MONITORING';
-      document.getElementById('topStatusDot').className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
-
-      const badgeShared = document.getElementById('badgeShared');
-      badgeShared.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 transition-all';
-      document.getElementById('badgeSharedTime').innerText = '00:00:01';
-
-      const nowTime = new Date().toTimeString().split(' ')[0];
-      this.addLogEntry(nowTime, `File <b>${this.activeFile.filename}</b> shared to <b>alex.morgan@partnercorp.io</b>`, 'shared');
-
-      document.getElementById('connectorLine1').className = 'h-0.5 w-full bg-cyan-500 laser-line-active';
-      document.getElementById('connectorArrow1').className = 'w-4 h-4 text-cyan-400 absolute';
-      document.getElementById('nodePersonA').classList.add('border-cyan-500/40', 'shadow-cyan-500/10');
-      
-      document.getElementById('activityLiveIndicator').classList.remove('hidden');
-      document.getElementById('activityLiveIndicator').classList.add('flex');
-
-      // Generate Share URL and populate share link container
-      let shareUrl = '';
-      if (window.location.protocol === 'file:') {
-        const currentHref = window.location.href.split('?')[0].split('#')[0];
-        shareUrl = currentHref.replace(/index\.html$/, 'share.html');
-        if (!shareUrl.includes('share.html')) {
-          shareUrl = shareUrl.replace(/\/$/, '') + '/share.html';
-        }
-        shareUrl += `?id=${this.currentShareId}`;
-      } else {
-        const origin = window.location.origin;
-        let pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
-        shareUrl = `${origin}${pathname}/share.html?id=${this.currentShareId}`;
-      }
-      this.currentShareUrl = shareUrl;
-      
+  renderShareLink(shareUrl) {
+    try {
       const shareLinkContainer = document.getElementById('shareLinkContainer');
       const shareLinkInput = document.getElementById('shareLinkInput');
       const btnOpenRecipientView = document.getElementById('btnOpenRecipientView');
@@ -244,8 +184,11 @@ class KillSwitchManager {
         shareLinkInput.value = shareUrl;
       }
       if (btnOpenRecipientView) {
+        btnOpenRecipientView.setAttribute('data-url', shareUrl);
         btnOpenRecipientView.onclick = (e) => {
+          if (e) e.preventDefault();
           this.openRecipientView();
+          return false;
         };
       }
       if (previewUrlText) {
@@ -254,20 +197,58 @@ class KillSwitchManager {
       if (previewOpenTabBtn) {
         previewOpenTabBtn.classList.remove('hidden');
         previewOpenTabBtn.classList.add('flex');
+        previewOpenTabBtn.setAttribute('data-url', shareUrl);
         previewOpenTabBtn.onclick = (e) => {
+          if (e) e.preventDefault();
           this.openRecipientView();
+          return false;
         };
       }
       if (previewActionLabel) {
         previewActionLabel.innerText = 'Active Link';
       }
+      if (window.lucide) lucide.createIcons();
+    } catch(err) {
+      console.error("Failed to render share link container:", err);
+    }
+  }
 
-      // Persist active share in localStorage for cross-tab recipient sync
+  handleShareFile() {
+    if (this.currentState !== STATE.IDLE) return;
+    
+    this.currentState = STATE.SHARING;
+    this.lastProcessedDownloadCount = 0;
+    this.currentShareId = 'cu-share-' + Math.random().toString(36).substring(2, 9);
+    soundEngine.play('share');
+
+    // 1. Resolve Share URL immediately
+    let shareUrl = '';
+    if (window.location.protocol === 'file:') {
+      const currentHref = window.location.href.split('?')[0].split('#')[0];
+      shareUrl = currentHref.replace(/index\.html$/, 'share.html');
+      if (!shareUrl.includes('share.html')) {
+        shareUrl = shareUrl.replace(/\/$/, '') + '/share.html';
+      }
+      shareUrl += `?id=${this.currentShareId}`;
+    } else {
+      const origin = window.location.origin;
+      let pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+      shareUrl = `${origin}${pathname}/share/${this.currentShareId}`;
+    }
+    this.currentShareUrl = shareUrl;
+
+    // 2. Render Share Link Container IMMEDIATELY (no delay)
+    this.renderShareLink(shareUrl);
+
+    // 3. Persist active share in localStorage for cross-tab recipient sync
+    try {
       const ownerUser = (window.authManager && authManager.getUser()) || {};
+      const filename = (this.activeFile && this.activeFile.filename) || 'Project_Final.pdf';
+      const fileId = (this.activeFile && this.activeFile.id) || 0;
       const shareData = {
         id: this.currentShareId,
-        fileId: this.activeFile.id,
-        filename: this.activeFile.filename,
+        fileId: fileId,
+        filename: filename,
         fileSize: "2.4 MB",
         ownerName: ownerUser.name || "Security Lead",
         ownerEmail: ownerUser.email || "lead@cyberundo.io",
@@ -281,14 +262,72 @@ class KillSwitchManager {
       localStorage.setItem('cyberundo_share_' + this.currentShareId, JSON.stringify(shareData));
       localStorage.setItem('cyberundo_active_share', JSON.stringify(shareData));
       window.dispatchEvent(new Event('storage'));
+    } catch(err) {
+      console.warn("Storage sync warning:", err);
+    }
 
-      // Immediately enable REVOKE ACCESS button so user can revoke at any time
-      this.activateRevokeButton();
+    // 4. Immediately enable REVOKE ACCESS button so owner can revoke at any time
+    this.activateRevokeButton();
 
-      // Begin background progression
-      this.simulateRapidProgression();
-      lucide.createIcons();
-    }, 500);
+    // 5. Update Share button state & Visuals safely
+    try {
+      const btnShare = document.getElementById('btnShare');
+      const btnShareText = document.getElementById('btnShareText');
+      const shareCard = document.getElementById('shareFileCard');
+      const fileBadgeState = document.getElementById('fileBadgeState');
+
+      if (btnShare) {
+        btnShare.disabled = true;
+        btnShare.classList.remove('from-cyan-600', 'to-blue-600', 'hover:from-cyan-500');
+        btnShare.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
+      }
+      if (btnShareText) {
+        btnShareText.innerHTML = `✓ SHARED WITH PERSON A`;
+      }
+      if (shareCard) {
+        shareCard.classList.add('glass-card-glow-cyan');
+      }
+      if (fileBadgeState) {
+        fileBadgeState.innerText = 'Active Link';
+        fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+      }
+
+      this.updateStepPills(1);
+
+      const topStatusText = document.getElementById('topStatusText');
+      if (topStatusText) topStatusText.innerText = 'LINK ACTIVE — MONITORING';
+      const topStatusDot = document.getElementById('topStatusDot');
+      if (topStatusDot) topStatusDot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
+
+      const badgeShared = document.getElementById('badgeShared');
+      if (badgeShared) badgeShared.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 transition-all';
+      const badgeSharedTime = document.getElementById('badgeSharedTime');
+      if (badgeSharedTime) badgeSharedTime.innerText = '00:00:01';
+
+      const nowTime = new Date().toTimeString().split(' ')[0];
+      const filename = (this.activeFile && this.activeFile.filename) || 'Project_Final.pdf';
+      this.addLogEntry(nowTime, `File <b>${filename}</b> shared to <b>alex.morgan@partnercorp.io</b>`, 'shared');
+
+      const connectorLine1 = document.getElementById('connectorLine1');
+      if (connectorLine1) connectorLine1.className = 'h-0.5 w-full bg-cyan-500 laser-line-active';
+      const connectorArrow1 = document.getElementById('connectorArrow1');
+      if (connectorArrow1) connectorArrow1.className = 'w-4 h-4 text-cyan-400 absolute';
+      const nodePersonA = document.getElementById('nodePersonA');
+      if (nodePersonA) nodePersonA.classList.add('border-cyan-500/40', 'shadow-cyan-500/10');
+      
+      const activityLive = document.getElementById('activityLiveIndicator');
+      if (activityLive) {
+        activityLive.classList.remove('hidden');
+        activityLive.classList.add('flex');
+      }
+
+      if (window.lucide) lucide.createIcons();
+    } catch(err) {
+      console.warn("DOM update non-fatal error:", err);
+    }
+
+    // 6. Begin background progression
+    this.simulateRapidProgression();
   }
 
   triggerViewedState(fromCrossTab = false) {

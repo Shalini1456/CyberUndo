@@ -24,9 +24,13 @@ while ($true) {
                     $urlPath = "index.html"
                 }
 
-                $filePath = Join-Path $path $urlPath
-                if (-not (Test-Path $filePath -PathType Leaf) -and (Test-Path ($filePath + ".html") -PathType Leaf)) {
-                    $filePath = $filePath + ".html"
+                if ($urlPath.StartsWith("share/") -or $urlPath -eq "share") {
+                    $filePath = Join-Path $path "share.html"
+                } else {
+                    $filePath = Join-Path $path $urlPath
+                    if (-not (Test-Path $filePath -PathType Leaf) -and (Test-Path ($filePath + ".html") -PathType Leaf)) {
+                        $filePath = $filePath + ".html"
+                    }
                 }
 
                 if (Test-Path $filePath -PathType Leaf) {
