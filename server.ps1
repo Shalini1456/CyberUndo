@@ -1,9 +1,12 @@
 $port = 8080
-$path = "C:\Users\Balakrishnan\.gemini\antigravity\scratch\cyberundo-prototype"
+$path = Join-Path $PSScriptRoot "frontend"
+if (-not (Test-Path $path)) {
+    $path = $PSScriptRoot
+}
 
 $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $port)
 $listener.Start()
-Write-Output "CyberUndo HTTP Server listening on port $port"
+Write-Output "CyberUndo HTTP Server listening on http://localhost:$port (serving from $path)"
 
 while ($true) {
     try {

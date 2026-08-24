@@ -1,0 +1,19 @@
+{
+  "name": "cyberundo-frontend",
+  "version": "1.0.0",
+  "description": "CyberUndo — Reversible-action cybersecurity platform frontend",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve . -p 3000",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": [
+    "cybersecurity",
+    "zero-trust",
+    "remediation",
+    "killswitch",
+    "ctrl-z"
+  ],
+  "author": "CyberUndo Team",
+  "license": "MIT"
+}
