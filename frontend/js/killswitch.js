@@ -51,12 +51,13 @@ class KillSwitchManager {
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
-        if (this.currentState === STATE.ACTIVE_THREAT) {
+        // Allow instant revocation whenever file is shared or threat is active
+        if (this.currentState === STATE.SHARING || this.currentState === STATE.ACTIVE_THREAT) {
           this.handleRevokeAccess();
         } else if (this.currentState === STATE.REVOKED) {
           this.flashRevokedNotice();
         } else {
-          // Pulse the share button if not shared yet
+          // If in IDLE state, highlight the share button
           const btnShare = document.getElementById('btnShare');
           if (btnShare) {
             btnShare.classList.add('ring-2', 'ring-cyan-400');
@@ -154,7 +155,8 @@ class KillSwitchManager {
       badgeShared.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 transition-all';
       document.getElementById('badgeSharedTime').innerText = '00:00:01';
 
-      this.addLogEntry('12:00:00', `File <b>${this.activeFile.filename}</b> shared to <b>alex.morgan@partnercorp.io</b>`, 'shared');
+      const nowTime = new Date().toTimeString().split(' ')[0];
+      this.addLogEntry(nowTime, `File <b>${this.activeFile.filename}</b> shared to <b>alex.morgan@partnercorp.io</b>`, 'shared');
 
       document.getElementById('connectorLine1').className = 'h-0.5 w-full bg-cyan-500 laser-line-active';
       document.getElementById('connectorArrow1').className = 'w-4 h-4 text-cyan-400 absolute';
@@ -163,40 +165,46 @@ class KillSwitchManager {
       document.getElementById('activityLiveIndicator').classList.remove('hidden');
       document.getElementById('activityLiveIndicator').classList.add('flex');
 
+      // Immediately enable REVOKE ACCESS button so user can revoke at any time
+      this.activateRevokeButton();
+
+      // Begin background progression
       this.simulateRapidProgression();
-    }, 700);
+    }, 500);
   }
 
   simulateRapidProgression() {
     this.propagationTimer1 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED) return;
+      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
       
       soundEngine.play('share');
       this.updateStepPills(2);
 
       const badgeViewed = document.getElementById('badgeViewed');
       badgeViewed.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-blue-950/80 border border-blue-500/60 text-blue-300 transition-all';
-      document.getElementById('badgeViewedTime').innerText = '00:00:04';
+      document.getElementById('badgeViewedTime').innerText = '00:00:03';
 
-      this.addLogEntry('12:00:04', '<b>Person A</b> opened access link in Chrome on macOS (IP: 198.51.100.24, San Francisco)', 'viewed');
+      const nowTime = new Date().toTimeString().split(' ')[0];
+      this.addLogEntry(nowTime, '<b>Person A</b> opened access link in Chrome on macOS (IP: 198.51.100.24, San Francisco)', 'viewed');
 
       const ep1 = document.getElementById('endpoint1');
       ep1.classList.remove('opacity-50');
       ep1.classList.add('border-blue-500/40', 'bg-blue-950/20');
       ep1.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-600 animate-pulse';
       ep1.querySelector('.status-pill').innerText = 'Viewing';
-    }, 900);
+    }, 1200);
 
     this.propagationTimer2 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED) return;
+      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
       
       soundEngine.play('share');
 
       const badgeDownloaded = document.getElementById('badgeDownloaded');
       badgeDownloaded.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-amber-300 transition-all';
-      document.getElementById('badgeDownloadedTime').innerText = '00:00:08 (1x)';
+      document.getElementById('badgeDownloadedTime').innerText = '00:00:06 (1x)';
 
-      this.addLogEntry('12:00:08', 'Download #1 initiated by <b>Person A</b> (MacBook Pro)', 'download');
+      const nowTime = new Date().toTimeString().split(' ')[0];
+      this.addLogEntry(nowTime, 'Download #1 initiated by <b>Person A</b> (MacBook Pro)', 'download');
 
       const ep1 = document.getElementById('endpoint1');
       ep1.querySelector('.status-pill').className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
@@ -208,19 +216,20 @@ class KillSwitchManager {
       document.getElementById('downloadsNodeSubtitle').innerText = '1 active node';
       document.getElementById('propagationFormula').innerText = 'You → Person A → 1 Download';
       document.getElementById('activeSessionsCount').innerText = '1 Active Session';
-    }, 1800);
+    }, 2400);
 
     this.propagationTimer3 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED) return;
+      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
 
       this.currentState = STATE.ACTIVE_THREAT;
       soundEngine.play('threat');
       this.updateStepPills(3);
 
-      document.getElementById('badgeDownloadedTime').innerText = '00:00:12 (3x)';
+      document.getElementById('badgeDownloadedTime').innerText = '00:00:09 (3x)';
       
-      this.addLogEntry('12:00:11', '⚠️ Link forwarded! Download #2 from Windows 11 (IP: 203.0.113.45, Frankfurt)', 'threat');
-      this.addLogEntry('12:00:13', '🚨 Download #3 from Unverified Cloud Node (IP: 192.0.2.89, Singapore)', 'threat');
+      const nowTime = new Date().toTimeString().split(' ')[0];
+      this.addLogEntry(nowTime, '⚠️ Link forwarded! Download #2 from Windows 11 (IP: 203.0.113.45, Frankfurt)', 'threat');
+      this.addLogEntry(nowTime, '🚨 Download #3 from Unverified Cloud Node (IP: 192.0.2.89, Singapore)', 'threat');
 
       const ep2 = document.getElementById('endpoint2');
       ep2.classList.remove('opacity-50');
@@ -264,13 +273,15 @@ class KillSwitchManager {
 
       this.activateRevokeButton();
       lucide.createIcons();
-    }, 2800);
+    }, 3600);
   }
 
   activateRevokeButton() {
     this.updateStepPills(4);
     const btnRevoke = document.getElementById('btnRevoke');
     const revokeSection = document.getElementById('revokeSection');
+
+    if (!btnRevoke) return;
 
     btnRevoke.disabled = false;
     btnRevoke.classList.remove('bg-slate-800', 'text-slate-500', 'border-slate-700', 'cursor-not-allowed');
@@ -283,12 +294,21 @@ class KillSwitchManager {
       'active:scale-[0.98]'
     );
 
-    revokeSection.classList.add('glass-card-glow-danger');
-    document.getElementById('revokeHelperText').innerHTML = `<span class="text-red-400 font-bold animate-pulse">⚡ CLICK REVOKE ACCESS OR PRESS CTRL+Z NOW TO RECOVER CONTROL</span>`;
+    if (revokeSection) revokeSection.classList.add('glass-card-glow-danger');
+    const helperText = document.getElementById('revokeHelperText');
+    if (helperText) {
+      helperText.innerHTML = `<span class="text-red-400 font-bold animate-pulse">⚡ CLICK REVOKE ACCESS OR PRESS CTRL+Z NOW TO RECOVER CONTROL</span>`;
+    }
   }
 
   handleRevokeAccess() {
-    if (this.currentState !== STATE.ACTIVE_THREAT && this.currentState !== STATE.SHARING) return;
+    // Prevent duplicate revokes or revoking from idle
+    if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
+
+    // Clear all pending background progression timers
+    if (this.propagationTimer1) { clearTimeout(this.propagationTimer1); this.propagationTimer1 = null; }
+    if (this.propagationTimer2) { clearTimeout(this.propagationTimer2); this.propagationTimer2 = null; }
+    if (this.propagationTimer3) { clearTimeout(this.propagationTimer3); this.propagationTimer3 = null; }
 
     this.currentState = STATE.REVOKED;
     soundEngine.play('revoke');
@@ -296,89 +316,188 @@ class KillSwitchManager {
     document.body.classList.add('revoke-shockwave');
     setTimeout(() => document.body.classList.remove('revoke-shockwave'), 600);
 
+    // 1. Update File Badge State
+    const fileBadgeState = document.getElementById('fileBadgeState');
+    if (fileBadgeState) {
+      fileBadgeState.innerText = 'REVOKED / INVALIDATED';
+      fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-red-950 text-red-300 border border-red-500/50';
+    }
+
+    // 2. Update Share Button to allow reset
+    const btnShare = document.getElementById('btnShare');
+    const btnShareText = document.getElementById('btnShareText');
+    if (btnShare) {
+      btnShare.disabled = false;
+      btnShare.className = 'w-full relative group overflow-hidden rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 font-semibold py-3.5 px-4 transition-all flex items-center justify-center gap-2 text-sm tracking-wide cursor-pointer';
+      btnShare.onclick = () => this.reset();
+    }
+    if (btnShareText) {
+      btnShareText.innerHTML = `⟲ RESET WORKFLOW`;
+    }
+
+    // 3. Update Revoke Button to Executed state
     const btnRevoke = document.getElementById('btnRevoke');
     const btnRevokeText = document.getElementById('btnRevokeText');
-    btnRevoke.disabled = true;
-    btnRevoke.classList.remove('animate-pulse-slow', 'from-red-600', 'to-rose-600');
-    btnRevoke.classList.add('bg-slate-900', 'text-emerald-400', 'border-emerald-500/50', 'shadow-none', 'cursor-default');
-    btnRevokeText.innerHTML = `✓ ACCESS REVOKED (Zero-Trust Killswitch Executed)`;
-    document.getElementById('revokeBtnIconWrapper').innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>`;
+    if (btnRevoke) {
+      btnRevoke.disabled = true;
+      btnRevoke.classList.remove('animate-pulse-slow', 'from-red-600', 'to-rose-600', 'cursor-pointer');
+      btnRevoke.classList.add('bg-slate-900', 'text-emerald-400', 'border-emerald-500/50', 'shadow-none', 'cursor-default');
+    }
+    if (btnRevokeText) {
+      btnRevokeText.innerHTML = `✓ ACCESS REVOKED (Zero-Trust Killswitch Executed)`;
+    }
+    const iconWrapper = document.getElementById('revokeBtnIconWrapper');
+    if (iconWrapper) {
+      iconWrapper.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>`;
+    }
 
-    document.getElementById('revokeHelperText').innerHTML = `<span class="text-emerald-400 font-mono">Remediation complete. Decryption tokens invalidated across edge CDN nodes.</span>`;
+    const revokeHelper = document.getElementById('revokeHelperText');
+    if (revokeHelper) {
+      revokeHelper.innerHTML = `<span class="text-emerald-400 font-mono font-semibold">⚡ ACCESS REVOKED: Decryption tokens invalidated across edge reverse proxies.</span>`;
+    }
 
     this.updateStepPills(5);
 
-    document.getElementById('connectorLine1').className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
-    document.getElementById('connectorArrow1').className = 'w-4 h-4 text-slate-700 absolute';
-    document.getElementById('connectorLine2').className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
-    document.getElementById('connectorArrow2').className = 'w-4 h-4 text-slate-700 absolute';
+    // 4. Sever laser connection lines
+    const line1 = document.getElementById('connectorLine1');
+    const arrow1 = document.getElementById('connectorArrow1');
+    const line2 = document.getElementById('connectorLine2');
+    const arrow2 = document.getElementById('connectorArrow2');
 
+    if (line1) line1.className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
+    if (arrow1) arrow1.className = 'w-4 h-4 text-slate-700 absolute';
+    if (line2) line2.className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
+    if (arrow2) arrow2.className = 'w-4 h-4 text-slate-700 absolute';
+
+    // 5. Update Blast Radius & Exposure
     const blastSection = document.getElementById('blastRadiusSection');
-    blastSection.classList.remove('glass-card-glow-danger');
-    blastSection.classList.add('glass-card-glow-emerald');
+    if (blastSection) {
+      blastSection.classList.remove('glass-card-glow-danger');
+      blastSection.classList.add('glass-card-glow-emerald');
+    }
 
     const exposureBadge = document.getElementById('exposureBadge');
-    exposureBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-500';
-    document.getElementById('exposureText').innerText = 'Exposure: CONTAINED / ZERO RISK';
-    document.getElementById('exposureIcon').setAttribute('data-lucide', 'shield-check');
+    if (exposureBadge) {
+      exposureBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-500';
+    }
+    const exposureText = document.getElementById('exposureText');
+    if (exposureText) exposureText.innerText = 'Exposure: CONTAINED / ZERO RISK';
+    const exposureIcon = document.getElementById('exposureIcon');
+    if (exposureIcon) exposureIcon.setAttribute('data-lucide', 'shield-check');
 
-    document.getElementById('blastRadiusSummary').innerText = 'All Threats Neutralized';
-    document.getElementById('blastRadiusSummary').className = 'text-emerald-400 font-mono font-bold';
+    const blastSummary = document.getElementById('blastRadiusSummary');
+    if (blastSummary) {
+      blastSummary.innerText = 'All Threats Neutralized';
+      blastSummary.className = 'text-emerald-400 font-mono font-bold';
+    }
 
-    document.getElementById('downloadsIconBg').className = 'w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-1.5 border border-emerald-500/40';
-    document.getElementById('downloadsNodeTitle').className = 'text-xs font-bold text-slate-300 font-mono';
-    document.getElementById('downloadsNodeSubtitle').innerText = '0 active sessions (Terminated)';
-    document.getElementById('downloadsNodeSubtitle').className = 'text-[10px] text-emerald-400 font-mono';
+    const dlIconBg = document.getElementById('downloadsIconBg');
+    if (dlIconBg) {
+      dlIconBg.className = 'w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-1.5 border border-emerald-500/40';
+    }
+    const dlTitle = document.getElementById('downloadsNodeTitle');
+    if (dlTitle) {
+      dlTitle.className = 'text-xs font-bold text-slate-300 font-mono';
+    }
+    const dlSubtitle = document.getElementById('downloadsNodeSubtitle');
+    if (dlSubtitle) {
+      dlSubtitle.innerText = '0 active sessions (Terminated)';
+      dlSubtitle.className = 'text-[10px] text-emerald-400 font-mono';
+    }
 
-    document.getElementById('propagationFormula').innerText = 'You → Person A → 3 Downloads [REVOKED / NULLIFIED]';
-    document.getElementById('propagationFormula').className = 'px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-bold';
+    const formula = document.getElementById('propagationFormula');
+    if (formula) {
+      formula.innerText = 'You → Person A → 0 Active [REVOKED / NULLIFIED]';
+      formula.className = 'px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-bold';
+    }
 
-    document.getElementById('activeSessionsCount').innerText = '0 Active Sessions (3 Forcefully Terminated)';
-    document.getElementById('activeSessionsCount').className = 'text-emerald-400 font-semibold';
+    const activeSessions = document.getElementById('activeSessionsCount');
+    if (activeSessions) {
+      activeSessions.innerText = '0 Active Sessions (Connections Terminated)';
+      activeSessions.className = 'text-emerald-400 font-semibold';
+    }
 
     ['endpoint1', 'endpoint2', 'endpoint3'].forEach((id) => {
       const ep = document.getElementById(id);
-      ep.classList.remove('border-amber-500/40', 'border-red-500/40', 'bg-amber-950/20', 'bg-red-950/20');
-      ep.classList.add('border-slate-800', 'bg-slate-900/60');
-      const pill = ep.querySelector('.status-pill');
-      pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/80';
-      pill.innerText = 'Connection Severed';
+      if (ep) {
+        ep.classList.remove('border-amber-500/40', 'border-red-500/40', 'bg-amber-950/20', 'bg-red-950/20');
+        ep.classList.add('border-slate-800', 'bg-slate-900/60');
+        const pill = ep.querySelector('.status-pill');
+        if (pill) {
+          pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/80';
+          pill.innerText = 'Connection Severed';
+        }
+      }
     });
 
+    // 6. Update Result & Containment State Section
     const resultSection = document.getElementById('resultSection');
-    resultSection.classList.add('glass-card-glow-emerald');
-    document.getElementById('resultStatePill').innerText = 'SECURED & CONTAINED';
-    document.getElementById('resultStatePill').className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold';
+    if (resultSection) resultSection.classList.add('glass-card-glow-emerald');
+    const resultPill = document.getElementById('resultStatePill');
+    if (resultPill) {
+      resultPill.innerText = 'SECURED & CONTAINED';
+      resultPill.className = 'text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold';
+    }
 
     const card1 = document.getElementById('cardAccessRevoked');
-    card1.className = 'p-3.5 rounded-xl bg-red-950/30 border border-red-500/40 transition-all flex items-start gap-3 shadow-lg shadow-red-500/5';
-    card1.querySelector('p.font-bold').className = 'text-xs font-mono font-black text-red-400 tracking-wider flex items-center gap-1.5';
-    card1.querySelector('p.font-bold').innerHTML = `<i data-lucide="x-circle" class="w-3.5 h-3.5 text-red-400"></i> ACCESS REVOKED`;
-    document.getElementById('iconAccessRevoked').className = 'p-2 rounded-lg bg-red-500/20 text-red-400 mt-0.5 border border-red-500/40';
-    document.getElementById('descAccessRevoked').innerHTML = `<span class="text-slate-300">All 3 active endpoint connections killed instantly at edge reverse-proxy.</span>`;
+    if (card1) {
+      card1.className = 'p-3.5 rounded-xl bg-red-950/30 border border-red-500/40 transition-all flex items-start gap-3 shadow-lg shadow-red-500/5';
+      const titleP = card1.querySelector('p.font-bold');
+      if (titleP) {
+        titleP.className = 'text-xs font-mono font-black text-red-400 tracking-wider flex items-center gap-1.5';
+        titleP.innerHTML = `<i data-lucide="x-circle" class="w-3.5 h-3.5 text-red-400"></i> ACCESS REVOKED`;
+      }
+      const icon1 = document.getElementById('iconAccessRevoked');
+      if (icon1) icon1.className = 'p-2 rounded-lg bg-red-500/20 text-red-400 mt-0.5 border border-red-500/40';
+      const desc1 = document.getElementById('descAccessRevoked');
+      if (desc1) desc1.innerHTML = `<span class="text-slate-300">All endpoint connections killed instantly at edge reverse-proxy.</span>`;
+    }
 
     const card2 = document.getElementById('cardLinkInvalidated');
-    card2.className = 'p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 transition-all flex items-start gap-3 shadow-lg shadow-amber-500/5';
-    card2.querySelector('p.font-bold').className = 'text-xs font-mono font-black text-amber-400 tracking-wider flex items-center gap-1.5';
-    card2.querySelector('p.font-bold').innerHTML = `<i data-lucide="ban" class="w-3.5 h-3.5 text-amber-400"></i> LINK INVALIDATED`;
-    document.getElementById('iconLinkInvalidated').className = 'p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5 border border-amber-500/40';
-    document.getElementById('descLinkInvalidated').innerHTML = `<span class="text-slate-300">Cryptographic token revoked. URL permanently returns <b>403 Forbidden</b>.</span>`;
+    if (card2) {
+      card2.className = 'p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 transition-all flex items-start gap-3 shadow-lg shadow-amber-500/5';
+      const titleP2 = card2.querySelector('p.font-bold');
+      if (titleP2) {
+        titleP2.className = 'text-xs font-mono font-black text-amber-400 tracking-wider flex items-center gap-1.5';
+        titleP2.innerHTML = `<i data-lucide="ban" class="w-3.5 h-3.5 text-amber-400"></i> LINK INVALIDATED`;
+      }
+      const icon2 = document.getElementById('iconLinkInvalidated');
+      if (icon2) icon2.className = 'p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5 border border-amber-500/40';
+      const desc2 = document.getElementById('descLinkInvalidated');
+      if (desc2) desc2.innerHTML = `<span class="text-slate-300">Cryptographic token revoked. URL permanently returns <b>403 Forbidden</b>.</span>`;
+    }
 
-    document.getElementById('previewHttpStatus').className = 'font-mono text-[11px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-500/60 font-bold';
-    document.getElementById('previewHttpStatus').innerText = 'HTTP 403 FORBIDDEN';
-    document.getElementById('previewStatusDot').className = 'w-2 h-2 rounded-full bg-red-500';
-    document.getElementById('previewUrlText').innerHTML = `<span class="line-through text-slate-500">https://cyberundo.security/share/v9x-77a1</span> <span class="text-red-400 ml-1 font-bold">[ACCESS DENIED]</span>`;
-    document.getElementById('previewActionLabel').innerHTML = `<span class="text-red-400 font-bold">REVOKED BY CYBERUNDO</span>`;
-    document.getElementById('mockBrowserContent').className = 'p-3 rounded-lg bg-red-950/20 border border-red-500/30 text-xs font-mono flex items-center justify-between transition-all';
+    const previewStatus = document.getElementById('previewHttpStatus');
+    if (previewStatus) {
+      previewStatus.className = 'font-mono text-[11px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-500/60 font-bold';
+      previewStatus.innerText = 'HTTP 403 FORBIDDEN';
+    }
+    const previewDot = document.getElementById('previewStatusDot');
+    if (previewDot) previewDot.className = 'w-2 h-2 rounded-full bg-red-500';
+    const previewUrl = document.getElementById('previewUrlText');
+    if (previewUrl) {
+      previewUrl.innerHTML = `<span class="line-through text-slate-500">https://cyberundo.security/share/v9x-77a1</span> <span class="text-red-400 ml-1 font-bold">[ACCESS DENIED]</span>`;
+    }
+    const previewAction = document.getElementById('previewActionLabel');
+    if (previewAction) {
+      previewAction.innerHTML = `<span class="text-red-400 font-bold">REVOKED BY CYBERUNDO</span>`;
+    }
+    const mockContent = document.getElementById('mockBrowserContent');
+    if (mockContent) {
+      mockContent.className = 'p-3 rounded-lg bg-red-950/20 border border-red-500/30 text-xs font-mono flex items-center justify-between transition-all';
+    }
 
-    document.getElementById('topStatusText').innerText = 'INCIDENT NEUTRALIZED — ALL ACCESS REVOKED';
-    document.getElementById('topStatusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
+    const topText = document.getElementById('topStatusText');
+    if (topText) topText.innerText = 'INCIDENT NEUTRALIZED — ALL ACCESS REVOKED';
+    const topDot = document.getElementById('topStatusDot');
+    if (topDot) topDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
 
-    this.addLogEntry('12:00:15', `🚨 <b>KILLSWITCH TRIGGERED</b>: CyberUndo revocation executed on <b>${this.activeFile.filename}</b>`, 'revoked');
-    this.addLogEntry('12:00:15', '⚡ Access tokens invalidated across global edge clusters (0ms propagation)', 'revoked');
-    this.addLogEntry('12:00:16', '🔒 3 active sessions terminated. Remote file decryption disabled.', 'revoked');
+    const nowStr = new Date().toTimeString().split(' ')[0];
+    this.addLogEntry(nowStr, `🚨 <b>KILLSWITCH TRIGGERED</b>: CyberUndo revocation executed on <b>${this.activeFile.filename}</b>`, 'revoked');
+    this.addLogEntry(nowStr, '⚡ Access tokens invalidated across global edge clusters (0ms propagation)', 'revoked');
+    this.addLogEntry(nowStr, '🔒 Active sessions terminated. Remote file decryption disabled.', 'revoked');
 
-    setTimeout(() => soundEngine.play('contained'), 400);
+    setTimeout(() => soundEngine.play('contained'), 300);
     lucide.createIcons();
   }
 
@@ -411,9 +530,9 @@ class KillSwitchManager {
   }
 
   reset(playSoundEffect = true) {
-    if (this.propagationTimer1) clearTimeout(this.propagationTimer1);
-    if (this.propagationTimer2) clearTimeout(this.propagationTimer2);
-    if (this.propagationTimer3) clearTimeout(this.propagationTimer3);
+    if (this.propagationTimer1) { clearTimeout(this.propagationTimer1); this.propagationTimer1 = null; }
+    if (this.propagationTimer2) { clearTimeout(this.propagationTimer2); this.propagationTimer2 = null; }
+    if (this.propagationTimer3) { clearTimeout(this.propagationTimer3); this.propagationTimer3 = null; }
 
     this.currentState = STATE.IDLE;
     if (playSoundEffect) soundEngine.play('share');
@@ -422,6 +541,7 @@ class KillSwitchManager {
     const btnShareText = document.getElementById('btnShareText');
     if (btnShare) {
       btnShare.disabled = false;
+      btnShare.onclick = () => this.handleShareFile();
       btnShare.className = 'w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-semibold py-3.5 px-4 shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition-all flex items-center justify-center gap-2 text-sm tracking-wide';
     }
     if (btnShareText) {
