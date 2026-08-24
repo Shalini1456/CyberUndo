@@ -233,7 +233,7 @@ class KillSwitchManager {
     } else {
       const origin = window.location.origin;
       let pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
-      shareUrl = `${origin}${pathname}/share/${this.currentShareId}`;
+      shareUrl = `${origin}${pathname}/share?id=${this.currentShareId}`;
     }
     this.currentShareUrl = shareUrl;
 

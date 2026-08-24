@@ -1,22 +1,21 @@
 {
-  "version": 2,
   "cleanUrls": true,
   "rewrites": [
     {
       "source": "/share/:id*",
-      "destination": "/share.html"
+      "destination": "/share"
     },
     {
       "source": "/share",
-      "destination": "/share.html"
+      "destination": "/share"
     },
     {
       "source": "/frontend/share/:id*",
-      "destination": "/frontend/share.html"
+      "destination": "/frontend/share"
     },
     {
       "source": "/frontend/share",
-      "destination": "/frontend/share.html"
+      "destination": "/frontend/share"
     }
   ]
 }
