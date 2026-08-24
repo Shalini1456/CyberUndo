@@ -212,17 +212,54 @@ class KillSwitchManager {
       document.getElementById('activityLiveIndicator').classList.add('flex');
 
       // Generate Share URL and populate share link container
-      const origin = window.location.origin;
-      const pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
-      const shareUrl = `${origin}${pathname}/share.html?id=${this.currentShareId}`;
+      let shareUrl = '';
+      if (window.location.protocol === 'file:') {
+        const currentHref = window.location.href.split('?')[0].split('#')[0];
+        shareUrl = currentHref.replace(/index\.html$/, 'share.html');
+        if (!shareUrl.includes('share.html')) {
+          shareUrl = shareUrl.replace(/\/$/, '') + '/share.html';
+        }
+        shareUrl += `?id=${this.currentShareId}`;
+      } else {
+        const origin = window.location.origin;
+        let pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+        shareUrl = `${origin}${pathname}/share.html?id=${this.currentShareId}`;
+      }
       
       const shareLinkContainer = document.getElementById('shareLinkContainer');
       const shareLinkInput = document.getElementById('shareLinkInput');
       const btnOpenRecipientView = document.getElementById('btnOpenRecipientView');
+      const previewUrlText = document.getElementById('previewUrlText');
+      const previewOpenTabBtn = document.getElementById('previewOpenTabBtn');
+      const previewActionLabel = document.getElementById('previewActionLabel');
 
-      if (shareLinkContainer) shareLinkContainer.classList.remove('hidden');
-      if (shareLinkInput) shareLinkInput.value = shareUrl;
-      if (btnOpenRecipientView) btnOpenRecipientView.href = shareUrl;
+      if (shareLinkContainer) {
+        shareLinkContainer.classList.remove('hidden');
+        shareLinkContainer.style.display = 'block';
+      }
+      if (shareLinkInput) {
+        shareLinkInput.value = shareUrl;
+      }
+      if (btnOpenRecipientView) {
+        btnOpenRecipientView.href = shareUrl;
+        btnOpenRecipientView.onclick = (e) => {
+          window.open(shareUrl, '_blank');
+        };
+      }
+      if (previewUrlText) {
+        previewUrlText.innerText = shareUrl;
+      }
+      if (previewOpenTabBtn) {
+        previewOpenTabBtn.classList.remove('hidden');
+        previewOpenTabBtn.classList.add('flex');
+        previewOpenTabBtn.href = shareUrl;
+        previewOpenTabBtn.onclick = (e) => {
+          window.open(shareUrl, '_blank');
+        };
+      }
+      if (previewActionLabel) {
+        previewActionLabel.innerText = 'Active Link';
+      }
 
       // Persist active share in localStorage for cross-tab recipient sync
       const ownerUser = (window.authManager && authManager.getUser()) || {};
@@ -242,6 +279,7 @@ class KillSwitchManager {
       };
       localStorage.setItem('cyberundo_share_' + this.currentShareId, JSON.stringify(shareData));
       localStorage.setItem('cyberundo_active_share', JSON.stringify(shareData));
+      window.dispatchEvent(new Event('storage'));
 
       // Immediately enable REVOKE ACCESS button so user can revoke at any time
       this.activateRevokeButton();
@@ -646,7 +684,12 @@ class KillSwitchManager {
     if (previewDot) previewDot.className = 'w-2 h-2 rounded-full bg-red-500';
     const previewUrl = document.getElementById('previewUrlText');
     if (previewUrl) {
-      previewUrl.innerHTML = `<span class="line-through text-slate-500">https://cyberundo.security/share/v9x-77a1</span> <span class="text-red-400 ml-1 font-bold">[ACCESS DENIED]</span>`;
+      previewUrl.innerHTML = `<span class="line-through text-slate-500">SHARE TOKEN REVOKED</span> <span class="text-red-400 ml-1 font-bold">[ACCESS DENIED]</span>`;
+    }
+    const previewOpenTabBtn = document.getElementById('previewOpenTabBtn');
+    if (previewOpenTabBtn) {
+      previewOpenTabBtn.classList.add('hidden');
+      previewOpenTabBtn.classList.remove('flex');
     }
     const previewAction = document.getElementById('previewActionLabel');
     if (previewAction) {
@@ -710,7 +753,24 @@ class KillSwitchManager {
     if (playSoundEffect) soundEngine.play('share');
 
     const shareLinkContainer = document.getElementById('shareLinkContainer');
-    if (shareLinkContainer) shareLinkContainer.classList.add('hidden');
+    if (shareLinkContainer) {
+      shareLinkContainer.classList.add('hidden');
+      shareLinkContainer.style.display = 'none';
+    }
+
+    const previewOpenTabBtn = document.getElementById('previewOpenTabBtn');
+    if (previewOpenTabBtn) {
+      previewOpenTabBtn.classList.add('hidden');
+      previewOpenTabBtn.classList.remove('flex');
+    }
+    const previewActionLabel = document.getElementById('previewActionLabel');
+    if (previewActionLabel) {
+      previewActionLabel.innerText = 'Standby';
+    }
+    const previewUrlText = document.getElementById('previewUrlText');
+    if (previewUrlText) {
+      previewUrlText.innerText = 'https://cyberundo.security/share/ready';
+    }
 
     const btnShare = document.getElementById('btnShare');
     const btnShareText = document.getElementById('btnShareText');
