@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberUndo — Secure Recipient Portal</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              950: '#060913',
+              900: '#0B0F19',
+              850: '#0F172A',
+              800: '#131D33',
+              700: '#1E293B',
+              600: '#334155',
+              cyan: '#06B6D4',
+              emerald: '#10B981',
+              danger: '#EF4444',
+              amber: '#F59E0B',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="cyber-bg min-h-screen flex flex-col items-center justify-between text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- TOP APP HEADER -->
+  <header class="w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl py-3 px-4 sm:px-8">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center font-bold">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-black text-lg text-white font-mono tracking-tight">Cyber<span class="text-cyan-400">Undo</span></span>
+          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono ml-2">
+            Recipient View
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 font-mono text-xs">
+        <span id="linkStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="linkStatusText" class="text-emerald-400 font-semibold">ACTIVE SECURE SHARE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN RECIPIENT CARD CONTAINER -->
+  <main class="max-w-xl w-full mx-auto px-4 py-8 flex-1 flex flex-col justify-center">
+    
+    <!-- REVOCATION BANNER (Hidden by default, shown when revoked) -->
+    <div id="revocationAlert" class="hidden glass-card-glow-danger rounded-2xl p-6 mb-6 bg-red-950/40 border border-red-500/80 text-center space-y-3 animate-fade-in">
+      <div class="w-14 h-14 rounded-2xl bg-red-500/20 text-red-400 border border-red-500/40 flex items-center justify-center mx-auto">
+        <i data-lucide="ban" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-black font-mono text-red-400 tracking-wide">ACCESS REVOKED</h2>
+        <span class="inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-red-950 text-red-300 border border-red-600">
+          HTTP 403 FORBIDDEN
+        </span>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+        This secure share has been invalidated by the owner using <b>CyberUndo Zero-Trust Killswitch</b>. Remote access tokens and decryption keys have been severed.
+      </p>
+      <div class="pt-2 text-[10px] font-mono text-red-400/80">
+        Decryption Token: [NULLIFIED] • Remote Node Access: [TERMINATED]
+      </div>
+    </div>
+
+    <!-- MAIN FILE SHARE CARD -->
+    <div id="fileShareCard" class="glass-card rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6 shadow-2xl relative overflow-hidden">
+      
+      <!-- Card Header / Security Badge -->
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="lock" class="w-4 h-4 text-cyan-400"></i>
+          <span class="text-xs font-mono font-bold text-slate-300">Protected Share Transfer</span>
+        </div>
+        <span id="cardStatusBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+          ENCRYPTED LINK
+        </span>
+      </div>
+
+      <!-- File Details Section -->
+      <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="file-text" class="w-6 h-6"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p id="shareFileName" class="font-mono text-sm font-bold text-white truncate">Project_Final.pdf</p>
+          <div class="flex items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
+            <span id="shareFileSize">2.4 MB</span>
+            <span>•</span>
+            <span id="shareFileType" class="text-cyan-400">PDF Document</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transfer Metadata (Sender / Recipient) -->
+      <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <span class="text-slate-500 block text-[10px] mb-0.5">SENDER</span>
+          <span id="senderName" class="text-slate-200 font-bold block truncate">Security Lead</span>
+          <span id="senderEmail" class="text-slate-500 text-[10px] block truncate">lead@cyberundo.io</span>
+        </div>
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
+          <span class="text-slate-500 block text-[10px] mb-0.5">RECIPIENT</span>
+          <span class="text-slate-200 font-bold block truncate">Person A</span>
+          <span class="text-slate-500 text-[10px] block truncate">alex.morgan@partnercorp.io</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3 pt-2">
+        <button 
+          id="btnViewFile" 
+          onclick="handleRecipientView()" 
+          class="w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-white font-mono font-bold text-xs border border-slate-700 hover:border-slate-600 transition flex items-center justify-center gap-2 shadow-md">
+          <i data-lucide="eye" class="w-4 h-4 text-cyan-400"></i>
+          <span>VIEW PROTECTED FILE</span>
+        </button>
+
+        <button 
+          id="btnDownloadFile" 
+          onclick="handleRecipientDownload()" 
+          class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-mono font-bold text-xs shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition flex items-center justify-center gap-2">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span id="btnDownloadText">DOWNLOAD FILE</span>
+        </button>
+      </div>
+
+      <!-- Telemetry Notice -->
+      <p class="text-[10px] text-slate-500 font-mono text-center leading-relaxed">
+        Activity on this link is cryptographically logged in real-time.<br />
+        Unauthorized redistribution will trigger instant containment.
+      </p>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: DOCUMENT PREVIEW (WHEN VIEW IS CLICKED) -->
+  <div id="previewModal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+    <div class="glass-card rounded-2xl w-full max-w-lg p-6 border border-slate-700 shadow-2xl modal-animate-in space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2 font-mono text-xs font-bold text-white">
+          <i data-lucide="file-check" class="w-4 h-4 text-cyan-400"></i>
+          <span id="previewDocTitle">Document Preview</span>
+        </div>
+        <button onclick="closePreviewModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-3 max-h-64 overflow-y-auto">
+        <div class="p-2 rounded bg-cyan-950/40 border border-cyan-500/30 text-[11px] text-cyan-300">
+          🔒 Confirmed View Event Logged — Session ID: <code id="sessionCode" class="font-bold">#SESSION-9921</code>
+        </div>
+        <p class="font-bold text-white">CONFIDENTIAL PROJECT SPECIFICATION & ARCHITECTURE</p>
+        <p class="text-slate-400 leading-relaxed">
+          This document contains proprietary zero-trust access policies, encrypted cryptographic hash registers, and authorized partner permissions.
+        </p>
+        <div class="border-t border-slate-800 pt-2 text-[11px] text-slate-500">
+          Status: Decrypted in sandbox memory for authorized recipient.
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closePreviewModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs">
+          Close Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="w-full border-t border-slate-800/80 bg-slate-950/60 py-3 text-center text-xs font-mono text-slate-500">
+    CyberUndo Zero-Trust Security Infrastructure • Recipient Token Gateway
+  </footer>
+
+  <script src="./js/audio.js"></script>
+  <script>
+    // Recipient Page Controller
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareId = urlParams.get('id') || 'demo';
+    const STORAGE_KEY = 'cyberundo_share_' + shareId;
+    const GLOBAL_ACTIVE_KEY = 'cyberundo_active_share';
+
+    let currentShare = null;
+
+    function loadShareData() {
+      const rawData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(GLOBAL_ACTIVE_KEY);
+      if (rawData) {
+        try {
+          currentShare = JSON.parse(rawData);
+        } catch(e) {
+          console.warn("Failed to parse share data:", e);
+        }
+      }
+
+      if (!currentShare) {
+        currentShare = {
+          id: shareId,
+          filename: 'Project_Final.pdf',
+          fileSize: '2.4 MB',
+          ownerName: 'Security Lead',
+          ownerEmail: 'lead@cyberundo.io',
+          recipientName: 'Person A',
+          recipientEmail: 'alex.morgan@partnercorp.io',
+          status: 'ACTIVE',
+          viewed: false,
+          downloadCount: 0
+        };
+      }
+
+      updateUI();
+    }
+
+    function saveShareData() {
+      if (!currentShare) return;
+      const json = JSON.stringify(currentShare);
+      localStorage.setItem(STORAGE_KEY, json);
+      localStorage.setItem(GLOBAL_ACTIVE_KEY, json);
+      // Trigger custom event for same-window updates
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function updateUI() {
+      if (!currentShare) return;
+
+      const isRevoked = currentShare.status === 'REVOKED';
+
+      // Update basic fields
+      document.getElementById('shareFileName').innerText = currentShare.filename || 'Project_Final.pdf';
+      document.getElementById('shareFileSize').innerText = currentShare.fileSize || '2.4 MB';
+      document.getElementById('senderName').innerText = currentShare.ownerName || 'Security Lead';
+      document.getElementById('senderEmail').innerText = currentShare.ownerEmail || 'lead@cyberundo.io';
+
+      const revocationAlert = document.getElementById('revocationAlert');
+      const fileShareCard = document.getElementById('fileShareCard');
+      const linkStatusDot = document.getElementById('linkStatusDot');
+      const linkStatusText = document.getElementById('linkStatusText');
+      const cardStatusBadge = document.getElementById('cardStatusBadge');
+      const btnView = document.getElementById('btnViewFile');
+      const btnDownload = document.getElementById('btnDownloadFile');
+      const btnDownloadText = document.getElementById('btnDownloadText');
+
+      if (isRevoked) {
+        // REVOKED / 403 STATE
+        revocationAlert.classList.remove('hidden');
+        fileShareCard.classList.remove('glass-card');
+        fileShareCard.classList.add('glass-card-glow-danger', 'opacity-60');
+
+        linkStatusDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-ping';
+        linkStatusText.className = 'text-red-400 font-bold';
+        linkStatusText.innerText = 'HTTP 403 ACCESS REVOKED';
+
+        cardStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-red-950 text-red-300 border border-red-500/50';
+        cardStatusBadge.innerText = 'ACCESS REVOKED';
+
+        btnView.disabled = true;
+        btnView.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-900 text-slate-600 font-mono font-bold text-xs border border-slate-800 cursor-not-allowed';
+        btnView.innerHTML = `<i data-lucide="lock" class="w-4 h-4 text-red-500"></i> ACCESS LOCKED (REVOKED)`;
+
+        btnDownload.disabled = true;
+        btnDownload.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-900 text-slate-600 font-mono font-bold text-xs border border-slate-800 cursor-not-allowed';
+        btnDownload.innerHTML = `<i data-lucide="lock" class="w-4 h-4 text-red-500"></i> DOWNLOAD DISABLED`;
+
+        closePreviewModal();
+      } else {
+        // ACTIVE STATE
+        revocationAlert.classList.add('hidden');
+        fileShareCard.classList.add('glass-card');
+        fileShareCard.classList.remove('glass-card-glow-danger', 'opacity-60');
+
+        linkStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        linkStatusText.className = 'text-emerald-400 font-semibold';
+        linkStatusText.innerText = 'ACTIVE SECURE SHARE';
+
+        cardStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/40';
+        cardStatusBadge.innerText = 'ENCRYPTED LINK';
+
+        btnView.disabled = false;
+        btnView.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-white font-mono font-bold text-xs border border-slate-700 hover:border-slate-600 transition flex items-center justify-center gap-2 shadow-md cursor-pointer';
+        btnView.innerHTML = `<i data-lucide="eye" class="w-4 h-4 text-cyan-400"></i> VIEW PROTECTED FILE`;
+
+        btnDownload.disabled = false;
+        btnDownload.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-mono font-bold text-xs shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition flex items-center justify-center gap-2 cursor-pointer';
+        btnDownload.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> <span>DOWNLOAD FILE${currentShare.downloadCount > 0 ? ` (${currentShare.downloadCount}x)` : ''}</span>`;
+      }
+
+      lucide.createIcons();
+    }
+
+    function handleRecipientView() {
+      if (!currentShare || currentShare.status === 'REVOKED') return;
+
+      currentShare.viewed = true;
+      currentShare.viewedAt = new Date().toISOString();
+      saveShareData();
+
+      const modal = document.getElementById('previewModal');
+      document.getElementById('previewDocTitle').innerText = currentShare.filename || 'Document Preview';
+      document.getElementById('sessionCode').innerText = `#SESSION-${Math.floor(1000 + Math.random() * 9000)}`;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      if (window.soundEngine) soundEngine.play('click');
+      lucide.createIcons();
+    }
+
+    function closePreviewModal() {
+      const modal = document.getElementById('previewModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function handleRecipientDownload() {
+      if (!currentShare || currentShare.status === 'REVOKED') return;
+
+      currentShare.downloadCount = (currentShare.downloadCount || 0) + 1;
+      currentShare.lastDownloadAt = new Date().toISOString();
+      saveShareData();
+
+      if (window.soundEngine) soundEngine.play('success');
+
+      // Trigger dummy download file creation
+      const dummyContent = `%PDF-1.4\nCyberUndo Encrypted Specimen: ${currentShare.filename}\nAuthorized Recipient: Person A (alex.morgan@partnercorp.io)\nOwner: ${currentShare.ownerName || 'Security Lead'}\nDownloaded at: ${new Date().toISOString()}`;
+      const blob = new Blob([dummyContent], { type: 'application/pdf' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = currentShare.filename || 'Project_Final.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      updateUI();
+    }
+
+    // Storage event synchronization across tabs
+    window.addEventListener('storage', (e) => {
+      loadShareData();
+    });
+
+    // Local polling fallback for incognito / cross-frame
+    setInterval(() => {
+      loadShareData();
+    }, 800);
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadShareData();
+      // Auto-record initial view on landing if active
+      if (currentShare && currentShare.status !== 'REVOKED' && !currentShare.viewed) {
+        currentShare.viewed = true;
+        currentShare.viewedAt = new Date().toISOString();
+        saveShareData();
+      }
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

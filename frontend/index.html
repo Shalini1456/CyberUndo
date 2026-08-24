@@ -286,8 +286,8 @@
           </button>
 
           <!-- Generated Share Link Card (Shown when Shared) -->
-          <div id="shareLinkContainer" class="hidden mt-4 p-4 rounded-xl bg-cyan-950/40 border-2 border-cyan-400/60 shadow-lg shadow-cyan-500/10 space-y-3 animate-fade-in font-mono text-xs">
-            <div class="flex items-center justify-between border-b border-cyan-500/30 pb-2">
+          <div id="shareLinkContainer" style="display: none;" class="mt-4 p-4 rounded-xl bg-cyan-950/50 border-2 border-cyan-400/80 shadow-xl shadow-cyan-500/20 space-y-3 animate-fade-in font-mono text-xs">
+            <div class="flex items-center justify-between border-b border-cyan-500/40 pb-2">
               <span class="text-cyan-300 font-bold flex items-center gap-1.5 text-xs">
                 <i data-lucide="link-2" class="w-4 h-4 text-cyan-400"></i>
                 DEMO RECIPIENT SHARE LINK (PERSON A)
@@ -314,15 +314,15 @@
                   <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                   <span id="copyBtnLabel">Copy</span>
                 </button>
-                <a 
+                <button 
+                  type="button"
                   id="btnOpenRecipientView" 
-                  href="#" 
-                  target="_blank" 
-                  class="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition flex items-center justify-center gap-1.5 text-xs shadow-md shadow-cyan-600/30 cursor-pointer"
+                  onclick="openRecipientView()"
+                  class="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition flex items-center justify-center gap-1.5 text-xs shadow-md shadow-cyan-600/30 cursor-pointer active:scale-95"
                   title="Open recipient view in new tab">
                   <span>OPEN VIEW</span>
                   <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                </a>
+                </button>
               </div>
             </div>
 

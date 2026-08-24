@@ -1,11 +1,1025 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=./frontend/index.html" />
-  <title>CyberUndo — Redirecting to Frontend...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberUndo — Ctrl + Z for Cybersecurity</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              950: '#060913',
+              900: '#0B0F19',
+              850: '#0F172A',
+              800: '#131D33',
+              700: '#1E293B',
+              600: '#334155',
+              cyan: '#06B6D4',
+              emerald: '#10B981',
+              danger: '#EF4444',
+              dangerGlow: '#DC2626',
+              amber: '#F59E0B',
+              purple: '#8B5CF6',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow-red': 'glowRed 2s ease-in-out infinite alternate',
+            'flow-beam': 'flowBeam 2s linear infinite',
+            'fade-in': 'fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          },
+          keyframes: {
+            glowRed: {
+              '0%': { boxShadow: '0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2)' },
+              '100%': { boxShadow: '0 0 30px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(239, 68, 68, 0.4)' },
+            },
+            flowBeam: {
+              '0%': { strokeDashoffset: '100' },
+              '100%': { strokeDashoffset: '0' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(8px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="./css/style.css">
 </head>
-<body style="background:#060913; color:#E2E8F0; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0;">
-  <p>Redirecting to <a href="./frontend/index.html" style="color:#06B6D4;">CyberUndo Frontend</a>...</p>
+<body class="cyber-bg min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- TOP APP BAR -->
+  <header class="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchMainTab('dashboard')">
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 text-cyan-400 shadow-lg shadow-cyan-500/10 flex-shrink-0">
+          <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping opacity-75"></span>
+          <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-xl tracking-tight text-white font-mono">Cyber<span class="text-cyan-400">Undo</span></span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-mono">SaaS MVP</span>
+          </div>
+          <p class="hidden sm:block text-[11px] text-slate-400 font-medium">“Ctrl + Z for Cybersecurity” — Zero-Trust Reversal Engine</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="hidden md:flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 font-mono text-xs">
+        <button id="navBtnDashboard" onclick="switchMainTab('dashboard')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold transition">
+          <i data-lucide="shield-off" class="w-3.5 h-3.5"></i>
+          <span>Killswitch & Blast Radius</span>
+        </button>
+        <button id="navBtnVault" onclick="switchMainTab('vault')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200 transition">
+          <i data-lucide="folder-lock" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Secure File Vault (Live API)</span>
+        </button>
+        <button id="navBtnTelemetry" onclick="switchMainTab('telemetry')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/60 text-slate-400 border border-slate-800 hover:text-slate-200 transition">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Status & Roadmap</span>
+        </button>
+      </div>
+
+      <!-- Quick Action / Status Bar / Auth -->
+      <div class="flex items-center gap-2.5">
+        <!-- Live Status Pill -->
+        <button onclick="openSettingsModal()" id="topStatusPill" class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 font-mono text-[11px] text-slate-300 transition" title="Click to view or change backend URL">
+          <span id="topStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="topStatusText">BACKEND CONNECTING</span>
+          <i data-lucide="settings" class="w-3 h-3 text-slate-500"></i>
+        </button>
+
+        <!-- Sound Toggle -->
+        <button id="soundToggleBtn" onclick="toggleAudio()" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition" title="Toggle audio feedback">
+          <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+
+        <!-- AUTH GUEST STATE -->
+        <div id="authGuestSection" class="flex items-center gap-2">
+          <button onclick="openAuthModal('login')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white transition">
+            Login
+          </button>
+          <button onclick="openAuthModal('register')" class="hidden sm:inline-flex px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-xs font-semibold text-white shadow-md shadow-cyan-500/20 transition">
+            Sign Up
+          </button>
+        </div>
+
+        <!-- AUTH LOGGED-IN STATE -->
+        <div id="authUserSection" class="hidden items-center gap-2.5">
+          <div class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800">
+            <div id="userAvatarText" class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center font-mono font-bold text-xs">
+              U
+            </div>
+            <div class="hidden sm:block text-left pr-1">
+              <p id="userDisplayName" class="font-mono text-xs font-bold text-white max-w-[110px] truncate">User</p>
+              <p class="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Authenticated
+              </p>
+            </div>
+          </div>
+          <button onclick="authManager.logout()" class="p-2 rounded-lg bg-slate-900 hover:bg-red-950/60 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-300 transition" title="Logout">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Mobile Navigation Sub-bar -->
+    <div class="md:hidden flex items-center justify-around border-t border-slate-800/80 px-4 py-2 bg-slate-950 font-mono text-xs">
+      <button onclick="switchMainTab('dashboard')" class="flex items-center gap-1.5 text-cyan-400 font-semibold">
+        <i data-lucide="shield-off" class="w-3.5 h-3.5"></i> Killswitch
+      </button>
+      <button onclick="switchMainTab('vault')" class="flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="folder-lock" class="w-3.5 h-3.5"></i> Vault (API)
+      </button>
+      <button onclick="switchMainTab('telemetry')" class="flex items-center gap-1.5 text-slate-400 hover:text-slate-200">
+        <i data-lucide="activity" class="w-3.5 h-3.5"></i> Status
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: KILLSWITCH & BLAST RADIUS (CYBERUNDO REVERSIBLE ACTION WORKFLOW)   -->
+  <!-- ========================================================================= -->
+  <div id="tabDashboardContent" class="space-y-6 flex-1 flex flex-col">
+    
+    <!-- STEP PROGRESS BAR / FLOW OVERVIEW -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2 w-full">
+      <div class="glass-card rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-800">
+        
+        <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 font-mono">
+          <i data-lucide="git-branch" class="w-4 h-4 text-cyan-400"></i>
+          Reversible Cybersecurity Lifecycle:
+        </div>
+
+        <!-- Flow steps indicator -->
+        <div class="flex items-center flex-wrap gap-2 sm:gap-3 text-xs font-mono w-full md:w-auto justify-start md:justify-end">
+          
+          <!-- Step 1 -->
+          <div id="stepPill1" class="step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition">
+            <span class="w-5 h-5 rounded-full bg-cyan-500/30 flex items-center justify-center font-bold text-[10px]">1</span>
+            <span>Share File</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600"></i>
+
+          <!-- Step 2 -->
+          <div id="stepPill2" class="step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition">
+            <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]">2</span>
+            <span>Activity</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600"></i>
+
+          <!-- Step 3 -->
+          <div id="stepPill3" class="step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition">
+            <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]">3</span>
+            <span>Blast Radius</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600"></i>
+
+          <!-- Step 4 -->
+          <div id="stepPill4" class="step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition">
+            <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]">4</span>
+            <span class="text-red-400 font-bold">REVOKE (Ctrl+Z)</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600"></i>
+
+          <!-- Step 5 -->
+          <div id="stepPill5" class="step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition">
+            <span class="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]">5</span>
+            <span>Result</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- LEFT COLUMN: Action Controls, File Share, Activity Timeline, Revoke Button -->
+      <div class="lg:col-span-6 space-y-6">
+
+        <!-- STEP 1: SHARE FILE CARD -->
+        <section class="glass-card rounded-2xl p-6 border transition-all duration-300 relative overflow-hidden" id="shareFileCard">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-mono text-xs font-bold border border-cyan-500/30">1</span>
+              <h2 class="text-base font-bold text-white tracking-wide">Target Protected File</h2>
+            </div>
+            <span id="fileBadgeState" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700">Ready to Share</span>
+          </div>
+
+          <!-- Active File Card -->
+          <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 flex items-center justify-between gap-4 mb-4">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <p id="activeFileName" class="font-mono text-sm font-bold text-white truncate">Project_Final.pdf</p>
+                  <span class="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">CONFIDENTIAL</span>
+                </div>
+                <p id="activeFileSize" class="text-xs text-slate-400 font-mono mt-0.5">Vault ID: #DEMO • Encrypted AES-256</p>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <button onclick="switchMainTab('vault')" class="inline-flex items-center gap-1 text-xs font-mono text-cyan-400 hover:text-cyan-300 bg-cyan-950/60 hover:bg-cyan-950 px-2 py-1 rounded border border-cyan-500/30 transition">
+                <i data-lucide="folder-search" class="w-3 h-3"></i> Choose from Vault
+              </button>
+            </div>
+          </div>
+
+          <!-- Recipient Specification -->
+          <div class="space-y-3 mb-5">
+            <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Intended Recipient:</span>
+              <span class="text-slate-500">One-time cryptographic share token</span>
+            </div>
+            <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-sm">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-xs text-white">
+                PA
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-slate-200">Person A</p>
+                <p class="text-xs text-slate-400 font-mono truncate">alex.morgan@partnercorp.io</p>
+              </div>
+              <span class="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">External Vendor</span>
+            </div>
+          </div>
+
+          <!-- Primary Action Button: SHARE -->
+          <button 
+            id="btnShare" 
+            onclick="handleShareFile()" 
+            class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-semibold py-3.5 px-4 shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition-all flex items-center justify-center gap-2 text-sm tracking-wide">
+            <i data-lucide="send" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+            <span id="btnShareText">SHARE FILE (Project_Final.pdf → Person A)</span>
+          </button>
+
+          <!-- Generated Share Link Card (Shown when Shared) -->
+          <div id="shareLinkContainer" style="display: none;" class="mt-4 p-4 rounded-xl bg-cyan-950/50 border-2 border-cyan-400/80 shadow-xl shadow-cyan-500/20 space-y-3 animate-fade-in font-mono text-xs">
+            <div class="flex items-center justify-between border-b border-cyan-500/40 pb-2">
+              <span class="text-cyan-300 font-bold flex items-center gap-1.5 text-xs">
+                <i data-lucide="link-2" class="w-4 h-4 text-cyan-400"></i>
+                DEMO RECIPIENT SHARE LINK (PERSON A)
+              </span>
+              <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/40 animate-pulse">
+                Cross-Tab Live
+              </span>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input 
+                type="text" 
+                id="shareLinkInput" 
+                readonly 
+                class="flex-1 bg-slate-900 border border-slate-700 px-3 py-2 rounded-lg text-slate-200 text-xs font-mono select-all focus:outline-none focus:border-cyan-400"
+              />
+              <div class="flex items-center gap-2">
+                <button 
+                  type="button"
+                  onclick="copyShareLink()" 
+                  id="btnCopyShareLink"
+                  class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                  title="Copy share link">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span id="copyBtnLabel">Copy</span>
+                </button>
+                <button 
+                  type="button"
+                  id="btnOpenRecipientView" 
+                  onclick="openRecipientView()"
+                  class="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold transition flex items-center justify-center gap-1.5 text-xs shadow-md shadow-cyan-600/30 cursor-pointer active:scale-95"
+                  title="Open recipient view in new tab">
+                  <span>OPEN VIEW</span>
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-300 font-sans leading-relaxed">
+              👉 <b>Test Cross-Tab Flow:</b> Click <span class="text-cyan-400 font-bold">OPEN VIEW</span> to launch Person A's recipient portal in a second tab. Watch this dashboard automatically update when you <b>View</b> or <b>Download</b> from that tab!
+            </p>
+          </div>
+
+          <p class="text-[11px] text-slate-500 text-center mt-2.5 font-mono">
+            Clicking share will generate an active trackable link and simulate real-time propagation.
+          </p>
+        </section>
+
+        <!-- STEP 2: ACTIVITY STATUS STREAM -->
+        <section class="glass-card rounded-2xl p-6 border transition-all duration-300 relative" id="activitySection">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-mono text-xs font-bold border border-cyan-500/30">2</span>
+              <h2 class="text-base font-bold text-white tracking-wide">Activity Stream</h2>
+            </div>
+            <span id="activityLiveIndicator" class="hidden items-center gap-1.5 text-xs font-mono text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> Live Tracking
+            </span>
+          </div>
+
+          <!-- Flow Progression Badges: SHARED -> VIEWED -> DOWNLOADED -->
+          <div class="grid grid-cols-3 gap-2 sm:gap-3 p-3 bg-slate-900/90 rounded-xl border border-slate-800 mb-5 text-center font-mono text-xs">
+            
+            <!-- State 1: SHARED -->
+            <div id="badgeShared" class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-500 transition-all">
+              <div class="flex items-center gap-1.5 font-bold mb-1">
+                <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                <span>SHARED</span>
+              </div>
+              <span id="badgeSharedTime" class="text-[10px] text-slate-500 font-sans">Pending</span>
+            </div>
+
+            <!-- State 2: VIEWED -->
+            <div id="badgeViewed" class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-500 transition-all">
+              <div class="flex items-center gap-1.5 font-bold mb-1">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>VIEWED</span>
+              </div>
+              <span id="badgeViewedTime" class="text-[10px] text-slate-500 font-sans">Pending</span>
+            </div>
+
+            <!-- State 3: DOWNLOADED -->
+            <div id="badgeDownloaded" class="flex flex-col items-center justify-center p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-500 transition-all">
+              <div class="flex items-center gap-1.5 font-bold mb-1">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>DOWNLOADED</span>
+              </div>
+              <span id="badgeDownloadedTime" class="text-[10px] text-slate-500 font-sans">Pending</span>
+            </div>
+
+          </div>
+
+          <!-- Activity Telemetry Logs -->
+          <div class="space-y-2 font-mono text-xs">
+            <div class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold flex items-center justify-between pb-1">
+              <span>Audit Trail Logs</span>
+              <span id="logCount" class="text-slate-500">0 events</span>
+            </div>
+
+            <div id="activityLogsList" class="bg-slate-950/90 rounded-xl p-3 border border-slate-800/90 space-y-2 min-h-[140px] max-h-[180px] overflow-y-auto">
+              <p id="emptyLogsMsg" class="text-slate-600 text-center py-8 italic font-sans text-xs">
+                No activity yet. Click "SHARE FILE" to initiate the tracking flow.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3: UNDO ACTION (THE CYBERUNDO REVOKE BUTTON) -->
+        <section id="revokeSection" class="glass-card rounded-2xl p-6 border border-slate-800 transition-all duration-300 relative overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-red-500/20 text-red-400 flex items-center justify-center font-mono text-xs font-bold border border-red-500/30">3</span>
+              <h2 class="text-base font-bold text-white tracking-wide">Undo Action — CyberUndo Killswitch</h2>
+            </div>
+            <span class="font-mono text-xs text-red-400 font-semibold px-2 py-0.5 rounded bg-red-950/60 border border-red-500/30">Immediate Effect</span>
+          </div>
+
+          <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+            Sent sensitive data by accident or detected unauthorized spreading? Trigger <span class="text-red-400 font-semibold">CyberUndo</span> to instantly nullify access tokens, sever active connections, and invalidate all links.
+          </p>
+
+          <!-- Big Red Hero REVOKE ACCESS Button -->
+          <div class="relative">
+            <button 
+              id="btnRevoke" 
+              onclick="handleRevokeAccess()" 
+              disabled
+              class="w-full relative group overflow-hidden rounded-xl bg-slate-800 text-slate-500 font-bold py-4 px-6 border border-slate-700 transition-all flex items-center justify-center gap-3 text-base tracking-wider font-mono cursor-not-allowed">
+              
+              <div id="revokeBtnIconWrapper" class="p-1.5 rounded-lg bg-red-500/20 text-red-400 transition-transform group-hover:scale-110">
+                <i data-lucide="shield-off" class="w-5 h-5"></i>
+              </div>
+              
+              <span id="btnRevokeText" class="tracking-wide">REVOKE ACCESS</span>
+              
+              <span class="ml-2 text-xs font-mono px-2 py-0.5 rounded bg-black/40 text-slate-400 border border-slate-600/50">
+                Ctrl + Z
+              </span>
+            </button>
+          </div>
+
+          <div id="revokeHelperText" class="text-[11px] text-slate-500 text-center mt-2.5 font-mono">
+            Button activates automatically once file is shared and activity is detected.
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Blast Radius Lineage & Result / Post-Revoke State -->
+      <div class="lg:col-span-6 space-y-6">
+
+        <!-- STEP 5 & 3: BLAST RADIUS & EXPOSURE VISUALIZER -->
+        <section class="glass-card rounded-2xl p-6 border transition-all duration-300 relative" id="blastRadiusSection">
+          
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center font-mono text-xs font-bold border border-amber-500/30">5</span>
+              <h2 class="text-base font-bold text-white tracking-wide">Blast Radius Analysis</h2>
+            </div>
+
+            <!-- Dynamic Exposure Badge: Exposure: HIGH -> CONTAINED -->
+            <div id="exposureBadge" class="flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 transition-all duration-500">
+              <i id="exposureIcon" data-lucide="activity" class="w-3.5 h-3.5"></i>
+              <span id="exposureText">Exposure: UNKNOWN</span>
+            </div>
+          </div>
+
+          <!-- Visual Blast Radius Lineage Map: You -> Person A -> 3 Downloads -->
+          <div class="bg-slate-950/90 rounded-xl p-5 border border-slate-800 relative overflow-hidden mb-5">
+            
+            <div class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold font-mono mb-4 flex items-center justify-between">
+              <span>Data Lineage & Propagation Graph</span>
+              <span id="blastRadiusSummary" class="text-slate-500 font-mono">Standby</span>
+            </div>
+
+            <!-- SVG Flow Graph -->
+            <div class="relative py-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
+              
+              <!-- Node 1: YOU (Origin) -->
+              <div id="nodeOrigin" class="z-10 flex flex-col items-center p-3 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-center w-full sm:w-28 shadow-lg shadow-cyan-500/5 transition-all">
+                <div class="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-1.5 border border-cyan-500/40">
+                  <i data-lucide="user-check" class="w-4 h-4"></i>
+                </div>
+                <span class="text-xs font-bold text-white font-mono">You</span>
+                <span class="text-[10px] text-cyan-400/80 font-mono">Owner / Origin</span>
+              </div>
+
+              <!-- Connector 1 -->
+              <div class="flex-1 flex items-center justify-center w-full sm:w-auto my-1 sm:my-0">
+                <div class="relative w-full flex items-center justify-center">
+                  <div id="connectorLine1" class="h-0.5 w-full bg-slate-800 transition-all duration-500"></div>
+                  <i id="connectorArrow1" data-lucide="chevron-right" class="w-4 h-4 text-slate-600 absolute transition-colors"></i>
+                </div>
+              </div>
+
+              <!-- Node 2: Person A -->
+              <div id="nodePersonA" class="z-10 flex flex-col items-center p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-center w-full sm:w-32 shadow-lg transition-all">
+                <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center mb-1.5 border border-purple-500/40">
+                  <i data-lucide="user" class="w-4 h-4"></i>
+                </div>
+                <span class="text-xs font-bold text-white font-mono">Person A</span>
+                <span class="text-[10px] text-slate-400 font-mono">Recipient</span>
+              </div>
+
+              <!-- Connector 2 -->
+              <div class="flex-1 flex items-center justify-center w-full sm:w-auto my-1 sm:my-0">
+                <div class="relative w-full flex items-center justify-center">
+                  <div id="connectorLine2" class="h-0.5 w-full bg-slate-800 transition-all duration-500"></div>
+                  <i id="connectorArrow2" data-lucide="chevron-right" class="w-4 h-4 text-slate-600 absolute transition-colors"></i>
+                </div>
+              </div>
+
+              <!-- Node 3: 3 Downloads -->
+              <div id="nodeDownloads" class="z-10 flex flex-col items-center p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-center w-full sm:w-32 shadow-lg transition-all">
+                <div id="downloadsIconBg" class="w-9 h-9 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center mb-1.5 border border-slate-700 transition-all">
+                  <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
+                </div>
+                <span id="downloadsNodeTitle" class="text-xs font-bold text-slate-400 font-mono">3 Downloads</span>
+                <span id="downloadsNodeSubtitle" class="text-[10px] text-slate-500 font-mono">0 active</span>
+              </div>
+
+            </div>
+
+            <!-- Formula / Flow Notation Box -->
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+              <span class="text-slate-400">Propagation Path:</span>
+              <div id="propagationFormula" class="px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 font-bold">
+                You → Person A → 0 Downloads
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Endpoint List & Risk Breakdown -->
+          <div class="space-y-2.5">
+            <div class="text-xs font-mono text-slate-400 font-semibold flex items-center justify-between">
+              <span>Detected Endpoints / Download Instances</span>
+              <span id="activeSessionsCount" class="text-slate-500">0 Active Sessions</span>
+            </div>
+
+            <div id="endpointsList" class="space-y-2">
+              <div id="endpoint1" class="endpoint-item flex items-center justify-between p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 text-xs font-mono opacity-50">
+                <div class="flex items-center gap-2.5">
+                  <i data-lucide="laptop" class="w-4 h-4 text-slate-500"></i>
+                  <div>
+                    <span class="text-slate-300 font-semibold">MacBook Pro (Person A)</span>
+                    <span class="block text-[10px] text-slate-500">198.51.100.24 • San Francisco, US</span>
+                  </div>
+                </div>
+                <span class="status-pill text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Idle</span>
+              </div>
+
+              <div id="endpoint2" class="endpoint-item flex items-center justify-between p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 text-xs font-mono opacity-50">
+                <div class="flex items-center gap-2.5">
+                  <i data-lucide="monitor" class="w-4 h-4 text-slate-500"></i>
+                  <div>
+                    <span class="text-slate-300 font-semibold">Windows 11 Workstation (Forwarded)</span>
+                    <span class="block text-[10px] text-slate-500">203.0.113.45 • Frankfurt, DE</span>
+                  </div>
+                </div>
+                <span class="status-pill text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Idle</span>
+              </div>
+
+              <div id="endpoint3" class="endpoint-item flex items-center justify-between p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 text-xs font-mono opacity-50">
+                <div class="flex items-center gap-2.5">
+                  <i data-lucide="server" class="w-4 h-4 text-slate-500"></i>
+                  <div>
+                    <span class="text-slate-300 font-semibold">Unverified Cloud Node (Third-Party)</span>
+                    <span class="block text-[10px] text-slate-500">192.0.2.89 • Singapore, SG</span>
+                  </div>
+                </div>
+                <span class="status-pill text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Idle</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- STEP 4: RESULT / POST-REVOCATION CONFIRMATION -->
+        <section class="glass-card rounded-2xl p-6 border transition-all duration-300 relative" id="resultSection">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono text-xs font-bold border border-emerald-500/30">4</span>
+              <h2 class="text-base font-bold text-white tracking-wide">Result & Containment State</h2>
+            </div>
+            <span id="resultStatePill" class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">Awaiting Action</span>
+          </div>
+
+          <!-- Result Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            
+            <!-- Result Card 1: ACCESS REVOKED -->
+            <div id="cardAccessRevoked" class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 transition-all flex items-start gap-3">
+              <div id="iconAccessRevoked" class="p-2 rounded-lg bg-slate-800 text-slate-500 mt-0.5">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <p class="text-xs font-mono font-bold text-slate-400 tracking-wider">ACCESS REVOKED</p>
+                <p id="descAccessRevoked" class="text-[11px] text-slate-500 mt-0.5 leading-snug">All 3 active client sessions severed immediately at edge gateway.</p>
+              </div>
+            </div>
+
+            <!-- Result Card 2: LINK INVALIDATED -->
+            <div id="cardLinkInvalidated" class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 transition-all flex items-start gap-3">
+              <div id="iconLinkInvalidated" class="p-2 rounded-lg bg-slate-800 text-slate-500 mt-0.5">
+                <i data-lucide="link-2-off" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <p class="text-xs font-mono font-bold text-slate-400 tracking-wider">LINK INVALIDATED</p>
+                <p id="descLinkInvalidated" class="text-[11px] text-slate-500 mt-0.5 leading-snug">Token revoked. Global signed URL returns 403 Forbidden.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Live Simulation Browser Preview Modal / Box -->
+          <div class="bg-slate-950/90 rounded-xl p-4 border border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+                <i data-lucide="globe" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Recipient Live Browser View Preview:</span>
+              </div>
+              <span id="previewHttpStatus" class="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">HTTP 200 OK</span>
+            </div>
+
+            <div id="mockBrowserContent" class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono flex items-center justify-between gap-2 transition-all">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0" id="previewStatusDot"></span>
+                <span id="previewUrlText" class="text-slate-400 truncate max-w-[220px] sm:max-w-xs font-mono text-[11px]">https://cyberundo.security/share/ready</span>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span id="previewActionLabel" class="text-slate-500 text-[10px]">Standby</span>
+                <a id="previewOpenTabBtn" href="#" target="_blank" class="hidden text-cyan-400 hover:text-cyan-300 font-bold text-[10px] items-center gap-1 bg-cyan-950/80 px-2 py-1 rounded border border-cyan-500/30">
+                  <span>Open</span>
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: SECURE FILE VAULT (LIVE BACKEND API MANAGEMENT)                     -->
+  <!-- ========================================================================= -->
+  <div id="tabVaultContent" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+      <div>
+        <h1 class="text-xl font-bold text-white font-mono flex items-center gap-2.5">
+          <i data-lucide="folder-lock" class="w-6 h-6 text-cyan-400"></i>
+          Secure File Vault
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">
+          Connected live to <code id="apiEndpointDisplay" class="text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">https://cyberundo.onrender.com/api</code>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span id="vaultFilesCount" class="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+          0 files
+        </span>
+        <button onclick="filesManager.loadFiles()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 hover:text-white border border-slate-700 transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- VAULT AUTH PROMPT (IF NOT LOGGED IN) -->
+    <div id="vaultAuthPrompt" class="glass-card rounded-2xl p-8 text-center max-w-xl mx-auto space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto">
+        <i data-lucide="lock" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-white font-mono">Authentication Required for Vault Access</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+          Please log in or register to securely upload, list, and download private encrypted files.
+        </p>
+      </div>
+      <div class="flex items-center justify-center gap-3 pt-2">
+        <button onclick="openAuthModal('login')" class="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold font-mono transition shadow-lg shadow-cyan-600/20">
+          Sign In
+        </button>
+        <button onclick="openAuthModal('register')" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold font-mono border border-slate-700 transition">
+          Create Account
+        </button>
+      </div>
+    </div>
+
+    <!-- VAULT CONTENT (SHOWN WHEN AUTHENTICATED) -->
+    <div id="vaultContent" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Upload Drop Zone Card -->
+      <div class="lg:col-span-5 glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white font-mono flex items-center gap-2">
+            <i data-lucide="upload-cloud" class="w-4 h-4 text-cyan-400"></i>
+            Upload Sensitive File
+          </h2>
+          <span class="text-[10px] font-mono text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+            Max 16 MB
+          </span>
+        </div>
+
+        <input type="file" id="fileInputElement" class="hidden" />
+
+        <div id="fileDropZone" class="border-2 border-dashed border-slate-700/80 hover:border-cyan-500/60 rounded-xl p-6 text-center cursor-pointer transition-all bg-slate-900/50 hover:bg-slate-900 group relative">
+          
+          <div id="dropZoneContent" class="space-y-2">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto transition-transform group-hover:scale-110">
+              <i data-lucide="file-up" class="w-6 h-6"></i>
+            </div>
+            <p class="text-xs font-bold text-slate-200 font-mono">
+              Click to browse or drag & drop
+            </p>
+            <p class="text-[11px] text-slate-500">
+              PDF, TXT, PNG, JPG, DOCX, ZIP, JSON, CSV
+            </p>
+          </div>
+
+          <!-- Upload Progress Overlay -->
+          <div id="uploadProgress" class="hidden absolute inset-0 bg-slate-950/90 rounded-xl flex flex-col items-center justify-center p-4 space-y-3">
+            <span class="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
+            <p id="uploadStatusText" class="text-xs font-mono text-cyan-300 text-center truncate max-w-full">
+              Encrypting & Uploading...
+            </p>
+            <div class="w-3/4 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="uploadProgressBar" class="h-full bg-cyan-400 transition-all duration-300 w-0"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-[11px] text-slate-400 font-mono space-y-1">
+          <div class="flex items-center gap-1.5 text-slate-300 font-bold">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Zero-Trust Ingestion Engine</span>
+          </div>
+          <p>Files are stored with UUID obfuscation to prevent collision and path traversal attacks.</p>
+        </div>
+      </div>
+
+      <!-- File Vault Listing -->
+      <div class="lg:col-span-7 glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white font-mono flex items-center gap-2">
+            <i data-lucide="database" class="w-4 h-4 text-cyan-400"></i>
+            Your Encrypted Vault Records
+          </h2>
+          <span class="text-[11px] text-slate-500 font-mono">
+            Click any file to arm in Killswitch
+          </span>
+        </div>
+
+        <div id="vaultFilesList" class="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+          <!-- Populated dynamically via filesManager.renderFilesList() -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: SYSTEM TELEMETRY & ROADMAP (ROADMAP & MODULE STATUS)               -->
+  <!-- ========================================================================= -->
+  <div id="tabTelemetryContent" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 space-y-6">
+    
+    <div class="pb-2 border-b border-slate-800/80">
+      <h1 class="text-xl font-bold text-white font-mono flex items-center gap-2.5">
+        <i data-lucide="activity" class="w-6 h-6 text-amber-400"></i>
+        System Architecture & Integration Status
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">
+        Definitive status of backend endpoints and modular feature roadmap.
+      </p>
+    </div>
+
+    <!-- Active vs Pending Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      
+      <!-- Card 1: Auth & User Security -->
+      <div class="glass-card rounded-2xl p-5 border border-emerald-500/30 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+            <i data-lucide="key" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+            LIVE / ACTIVE
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">Authentication & JWT Engine</h3>
+        <p class="text-xs text-slate-400">Werkzeug password hashing, stateless 24-hr JWT tokens, and <code>@token_required</code> middleware.</p>
+        <div class="font-mono text-[10px] text-slate-500 space-y-0.5 pt-1">
+          <div>✓ POST /api/register</div>
+          <div>✓ POST /api/login</div>
+          <div>✓ GET /api/auth/me</div>
+        </div>
+      </div>
+
+      <!-- Card 2: Vault & File Ingestion -->
+      <div class="glass-card rounded-2xl p-5 border border-emerald-500/30 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+            <i data-lucide="hard-drive" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+            LIVE / ACTIVE
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">File Vault & Metadata Ingestion</h3>
+        <p class="text-xs text-slate-400">16MB upload restrictions, UUID collision avoidance, user-isolated queries, and direct streaming.</p>
+        <div class="font-mono text-[10px] text-slate-500 space-y-0.5 pt-1">
+          <div>✓ POST /api/files/upload</div>
+          <div>✓ GET /api/files</div>
+          <div>✓ GET /api/files/&lt;id&gt;/download</div>
+        </div>
+      </div>
+
+      <!-- Card 3: Killswitch & Sharing (Member 2) -->
+      <div class="glass-card rounded-2xl p-5 border border-amber-500/30 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+            <i data-lucide="link-2" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/40">
+            MODULE HOOK READY
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">Secure Sharing & Revoke Engine</h3>
+        <p class="text-xs text-slate-400">Frontend features visual simulation. Database foundation <code>SharedAccess</code> is ready in backend.</p>
+        <div class="font-mono text-[10px] text-amber-400/80 space-y-0.5 pt-1">
+          <div>⏳ POST /api/share (Member 2)</div>
+          <div>⏳ POST /api/revoke (Member 2)</div>
+        </div>
+      </div>
+
+      <!-- Card 4: Threat Telemetry & Activity Logs (Member 4) -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+            <i data-lucide="radar" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">
+            MODULE HOOK READY
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">Activity Logs & Audit Telemetry</h3>
+        <p class="text-xs text-slate-400">Audit trail tables <code>ActivityLogs</code> pre-configured in SQLite. Integration route ready for Member 4.</p>
+        <div class="font-mono text-[10px] text-slate-500 space-y-0.5 pt-1">
+          <div>⏳ GET /api/activity (Member 4)</div>
+        </div>
+      </div>
+
+      <!-- Card 5: Blast Radius & Risk Engine (Member 4) -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-red-500/20 text-red-400">
+            <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">
+            MODULE HOOK READY
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">Blast Radius & Risk Engine</h3>
+        <p class="text-xs text-slate-400">Dynamic network exposure calculation and automated risk containment scores.</p>
+        <div class="font-mono text-[10px] text-slate-500 space-y-0.5 pt-1">
+          <div>⏳ GET /api/blast-radius (Member 4)</div>
+        </div>
+      </div>
+
+      <!-- Card 6: Zero-Trust Recovery & Quarantine -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">
+            COMING SOON
+          </span>
+        </div>
+        <h3 class="font-mono text-sm font-bold text-white">Quarantine & Incident Recovery</h3>
+        <p class="text-xs text-slate-400">Automated post-revocation containment verification and edge certificate invalidation.</p>
+        <div class="font-mono text-[10px] text-slate-500 space-y-0.5 pt-1">
+          <div>⏳ Planned for v2.0</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/60 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-mono text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-400">CyberUndo</span>
+        <span>•</span>
+        <span>Reversible Cybersecurity Platform (Hackathon MVP)</span>
+      </div>
+      <div>
+        <span>Keyboard Shortcut: Press <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-700 text-slate-300 rounded text-[10px]">Ctrl + Z</kbd> to Trigger Killswitch</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: AUTHENTICATION (LOGIN / REGISTER)                                  -->
+  <!-- ========================================================================= -->
+  <div id="authModal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+    <div class="glass-card rounded-2xl w-full max-w-md p-6 border border-slate-700 shadow-2xl modal-animate-in relative space-y-5">
+      
+      <!-- Close Button -->
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+          <i data-lucide="shield" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 id="authModalTitle" class="text-sm font-bold text-white font-mono">Access CyberUndo Gateway</h3>
+          <p class="text-[11px] text-slate-400">Secure zero-trust authentication</p>
+        </div>
+      </div>
+
+      <!-- Auth Mode Tabs -->
+      <div class="flex border-b border-slate-800">
+        <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 py-2 font-mono text-xs font-bold border-b-2 border-cyan-400 text-cyan-300">
+          SIGN IN
+        </button>
+        <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="flex-1 py-2 font-mono text-xs font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent">
+          CREATE ACCOUNT
+        </button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-mono text-slate-300 mb-1.5">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="analyst@cyberundo.io" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-slate-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-slate-300 mb-1.5">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-slate-600" />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs shadow-lg shadow-cyan-500/20 transition active:scale-[0.99]">
+          LOGIN
+        </button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="registerForm" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-mono text-slate-300 mb-1.5">Full Name / Identifier</label>
+          <input type="text" id="regName" required placeholder="Security Lead" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-slate-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-slate-300 mb-1.5">Email Address</label>
+          <input type="email" id="regEmail" required placeholder="lead@cyberundo.io" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-slate-600" />
+        </div>
+        <div>
+          <label class="block text-xs font-mono text-slate-300 mb-1.5">Password (Min 6 chars)</label>
+          <input type="password" id="regPassword" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white placeholder-slate-600" />
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-mono font-bold text-xs shadow-lg shadow-cyan-500/20 transition active:scale-[0.99]">
+          CREATE ACCOUNT
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: BACKEND API SETTINGS                                               -->
+  <!-- ========================================================================= -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
+    <div class="glass-card rounded-2xl w-full max-w-md p-6 border border-slate-700 shadow-2xl modal-animate-in relative space-y-4">
+      
+      <button onclick="closeSettingsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center">
+          <i data-lucide="server" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white font-mono">Backend API Configuration</h3>
+          <p class="text-[11px] text-slate-400">Configure target API endpoint</p>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-mono text-slate-300">API Base URL</label>
+        <input type="url" id="customApiInput" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white" />
+        <p class="text-[10px] text-slate-500 font-mono">
+          Default: <code>https://cyberundo.onrender.com/api</code><br />
+          Local: <code>http://127.0.0.1:5000/api</code>
+        </p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="resetApiSettings()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition">
+          Reset Default
+        </button>
+        <button onclick="saveApiSettings()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold transition">
+          Save Settings
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Root Container -->
+  <div id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="./js/config.js"></script>
+  <script src="./js/audio.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/files.js"></script>
+  <script src="./js/killswitch.js"></script>
+  <script src="./js/app.js"></script>
+
 </body>
 </html>

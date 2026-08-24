@@ -1,0 +1,171 @@
+/* CyberUndo Modern Cybersecurity SaaS Stylesheet */
+
+:root {
+  --color-cyber-950: #060913;
+  --color-cyber-900: #0B0F19;
+  --color-cyber-850: #0F172A;
+  --color-cyber-800: #131D33;
+  --color-cyber-700: #1E293B;
+  --color-cyber-cyan: #06B6D4;
+  --color-cyber-emerald: #10B981;
+  --color-cyber-danger: #EF4444;
+  --color-cyber-amber: #F59E0B;
+  --color-cyber-purple: #8B5CF6;
+}
+
+body {
+  background-color: var(--color-cyber-950);
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Cyber Grid Matrix Background */
+.cyber-bg {
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.12), transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(239, 68, 68, 0.07), transparent 40%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+}
+
+.glass-card-glow-cyan {
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.15);
+}
+
+.glass-card-glow-danger {
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.25);
+}
+
+.glass-card-glow-emerald {
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.2);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F19;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Laser Flow Beams */
+.laser-line-danger {
+  stroke: #EF4444;
+  stroke-dasharray: 6 4;
+  animation: laserFlow 1.2s linear infinite;
+}
+
+.laser-line-active {
+  stroke: #06B6D4;
+  stroke-dasharray: 6 4;
+  animation: laserFlow 1.5s linear infinite;
+}
+
+.laser-line-severed {
+  stroke: #475569;
+  stroke-dasharray: 3 6;
+  opacity: 0.3;
+}
+
+@keyframes laserFlow {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Revocation Shockwave Animation */
+@keyframes shockwave {
+  0% { transform: scale(0.96); opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+  70% { transform: scale(1.02); opacity: 0.95; box-shadow: 0 0 0 40px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.revoke-shockwave {
+  animation: shockwave 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Modal Animations */
+.modal-backdrop {
+  background: rgba(4, 6, 14, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.modal-animate-in {
+  animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Toast Notifications */
+#toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  min-width: 300px;
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.3s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.toast-success {
+  background: rgba(15, 35, 30, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6EE7B7;
+}
+
+.toast-error {
+  background: rgba(38, 14, 18, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #FCA5A5;
+}
+
+.toast-info {
+  background: rgba(14, 28, 45, 0.95);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  color: #67E8F9;
+}
