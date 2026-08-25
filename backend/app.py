@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 from database import db, init_db
-from routes import auth_bp, file_bp
+from routes import auth_bp, file_bp, share_bp
 
 def create_app(config_class=Config):
     """
