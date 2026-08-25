@@ -248,7 +248,7 @@
                   <p id="activeFileName" class="font-mono text-sm font-bold text-white truncate">Project_Final.pdf</p>
                   <span class="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">CONFIDENTIAL</span>
                 </div>
-                <p id="activeFileSize" class="text-xs text-slate-400 font-mono mt-0.5">Vault ID: #DEMO • Encrypted AES-256</p>
+                <p id="activeFileSize" class="text-xs text-slate-400 font-mono mt-0.5">Vault Storage • Encrypted AES-256</p>
               </div>
             </div>
             <div class="text-right flex-shrink-0">
@@ -265,15 +265,15 @@
               <span class="text-slate-500">Targeted Access Control</span>
             </div>
             <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono">
-              <i data-lucide="mail" class="w-4 h-4 text-purple-400 flex-shrink-0"></i>
+              <i data-lucide="mail" class="w-4 h-4 text-cyan-400 flex-shrink-0"></i>
               <input 
                 type="email" 
                 id="shareRecipientEmail" 
-                value="alex.morgan@partnercorp.io" 
+                value="" 
                 placeholder="recipient@partnercorp.io"
                 class="flex-1 bg-transparent text-slate-200 focus:outline-none placeholder-slate-600 text-xs font-mono"
               />
-              <span class="text-[10px] font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-500/30">Person A</span>
+              <span class="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">Target Recipient</span>
             </div>
 
             <!-- Expiry & Download Permissions Row -->
@@ -313,7 +313,7 @@
             onclick="handleShareFile()" 
             class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-semibold py-3.5 px-4 shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition-all flex items-center justify-center gap-2 text-sm tracking-wide">
             <i data-lucide="send" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
-            <span id="btnShareText">SHARE FILE (Project_Final.pdf → Person A)</span>
+            <span id="btnShareText">SHARE FILE SECURELY</span>
           </button>
 
           <!-- Generated Share Link Card (Shown when Shared) -->
@@ -321,10 +321,10 @@
             <div class="flex items-center justify-between border-b border-cyan-500/40 pb-2">
               <span class="text-cyan-300 font-bold flex items-center gap-1.5 text-xs">
                 <i data-lucide="link-2" class="w-4 h-4 text-cyan-400"></i>
-                DEMO RECIPIENT SHARE LINK (PERSON A)
+                SECURE RECIPIENT SHARE LINK
               </span>
               <span class="text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/40 animate-pulse">
-                Cross-Tab Live
+                Live Server Token
               </span>
             </div>
             
@@ -358,12 +358,12 @@
             </div>
 
             <p class="text-[11px] text-slate-300 font-sans leading-relaxed">
-              👉 <b>Test Cross-Tab Flow:</b> Click <span class="text-cyan-400 font-bold">OPEN VIEW</span> to launch Person A's recipient portal in a second tab. Watch this dashboard automatically update when you <b>View</b> or <b>Download</b> from that tab!
+              👉 <b>Recipient Access:</b> Click <span class="text-cyan-400 font-bold">OPEN VIEW</span> to open the secure recipient portal in a new tab. This dashboard automatically reflects real-time <b>View</b> and <b>Download</b> telemetry.
             </p>
           </div>
 
           <p class="text-[11px] text-slate-500 text-center mt-2.5 font-mono">
-            Clicking share will generate an active trackable link and simulate real-time propagation.
+            Clicking share will generate an active trackable link and dispatch notification email.
           </p>
         </section>
 
@@ -527,13 +527,13 @@
                 </div>
               </div>
 
-              <!-- Node 2: Person A -->
+              <!-- Node 2: Recipient -->
               <div id="nodePersonA" class="z-10 flex flex-col items-center p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-center w-full sm:w-32 shadow-lg transition-all">
-                <div class="w-9 h-9 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center mb-1.5 border border-purple-500/40">
-                  <i data-lucide="user" class="w-4 h-4"></i>
+                <div class="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-1.5 border border-cyan-500/40">
+                  <i data-lucide="user-check" class="w-4 h-4"></i>
                 </div>
-                <span class="text-xs font-bold text-white font-mono">Person A</span>
-                <span class="text-[10px] text-slate-400 font-mono">Recipient</span>
+                <span class="text-xs font-bold text-white font-mono">Recipient</span>
+                <span class="text-[10px] text-slate-400 font-mono">Target Client</span>
               </div>
 
               <!-- Connector 2 -->
@@ -544,12 +544,12 @@
                 </div>
               </div>
 
-              <!-- Node 3: 3 Downloads -->
+              <!-- Node 3: Downloads -->
               <div id="nodeDownloads" class="z-10 flex flex-col items-center p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-center w-full sm:w-32 shadow-lg transition-all">
                 <div id="downloadsIconBg" class="w-9 h-9 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center mb-1.5 border border-slate-700 transition-all">
                   <i data-lucide="hard-drive-download" class="w-4 h-4"></i>
                 </div>
-                <span id="downloadsNodeTitle" class="text-xs font-bold text-slate-400 font-mono">3 Downloads</span>
+                <span id="downloadsNodeTitle" class="text-xs font-bold text-slate-400 font-mono">Downloads</span>
                 <span id="downloadsNodeSubtitle" class="text-[10px] text-slate-500 font-mono">0 active</span>
               </div>
 
@@ -559,7 +559,7 @@
             <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
               <span class="text-slate-400">Propagation Path:</span>
               <div id="propagationFormula" class="px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 font-bold">
-                You → Person A → 0 Downloads
+                Owner → Recipient → 0 Downloads
               </div>
             </div>
 
@@ -577,8 +577,8 @@
                 <div class="flex items-center gap-2.5">
                   <i data-lucide="laptop" class="w-4 h-4 text-slate-500"></i>
                   <div>
-                    <span class="text-slate-300 font-semibold">MacBook Pro (Person A)</span>
-                    <span class="block text-[10px] text-slate-500">198.51.100.24 • San Francisco, US</span>
+                    <span class="text-slate-300 font-semibold">Authorized Device</span>
+                    <span class="block text-[10px] text-slate-500">Recipient Portal Session</span>
                   </div>
                 </div>
                 <span class="status-pill text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700">Idle</span>

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import secrets
 from datetime import datetime, timedelta
@@ -6,8 +7,11 @@ from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from database import db
 from models import File, SharedAccess, ActivityLog, User
 from auth import token_required
+from email_service import send_share_email
 
 share_bp = Blueprint("share", __name__)
+
+EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
 
 def calculate_expiry(expiry_option: str):
     """
@@ -30,17 +34,17 @@ def calculate_expiry(expiry_option: str):
 
 
 # =============================================================================
-# 1. CREATE SECURE SHARE LINK
+# 1. CREATE SECURE SHARE LINK & DISPATCH EMAIL
 # =============================================================================
 @share_bp.route("/shares", methods=["POST"])
 @share_bp.route("/files/<int:file_id>/share", methods=["POST"])
 @token_required
 def create_share(current_user, file_id=None):
     """
-    Create a new secure trackable share token for a file.
+    Create a new secure trackable share token for a file and dispatch email notification.
     Expects JSON: {
         "file_id": 1,
-        "recipient_email": "alex.morgan@partnercorp.io",
+        "recipient_email": "recipient@company.com",
         "expiry": "24h",
         "allow_download": true
     }
@@ -69,12 +73,22 @@ def create_share(current_user, file_id=None):
         }), 403
 
     recipient_email = (data.get("recipient_email") or "").strip().lower() or None
+    if recipient_email and not re.match(EMAIL_REGEX, recipient_email):
+        return jsonify({
+            "success": False,
+            "message": "Invalid recipient email address format."
+        }), 400
+
     expiry_option = (data.get("expiry") or "24h").strip().lower()
     allow_download = bool(data.get("allow_download", True))
 
     # Generate cryptographically secure random token (32 bytes url-safe)
     share_token = "cu-share-" + secrets.token_urlsafe(24).replace("-", "").replace("_", "")[:16]
     expires_at = calculate_expiry(expiry_option)
+
+    # Build absolute frontend share URL
+    frontend_base = current_app.config.get("FRONTEND_URL", "https://cyber-undo.vercel.app").rstrip("/")
+    full_share_url = f"{frontend_base}/share?id={share_token}"
 
     try:
         new_share = SharedAccess(
@@ -91,6 +105,27 @@ def create_share(current_user, file_id=None):
         )
         db.session.add(new_share)
 
+        # Dispatch real email if recipient is specified
+        email_result = None
+        if recipient_email:
+            email_result = send_share_email(
+                recipient_email=recipient_email,
+                owner_name=current_user.name,
+                filename=file_record.filename,
+                share_url=full_share_url,
+                expires_at=expires_at.strftime("%Y-%m-%d %H:%M UTC") if expires_at else None,
+                allow_download=allow_download
+            )
+
+            # Check if email API call failed
+            if email_result and not email_result.get("success"):
+                db.session.rollback()
+                return jsonify({
+                    "success": False,
+                    "message": f"Failed to deliver secure email to {recipient_email}: {email_result.get('error', 'Email delivery failed')}",
+                    "error_detail": email_result.get("error")
+                }), 502
+
         # Log Activity audit entry
         log_entry = ActivityLog(
             file_id=file_record.id,
@@ -101,7 +136,8 @@ def create_share(current_user, file_id=None):
                 "share_token": share_token,
                 "recipient_email": recipient_email,
                 "expiry_option": expiry_option,
-                "allow_download": allow_download
+                "allow_download": allow_download,
+                "email_sent": bool(email_result and email_result.get("success"))
             })
         )
         db.session.add(log_entry)
@@ -110,11 +146,13 @@ def create_share(current_user, file_id=None):
         share_dict = new_share.to_dict()
         return jsonify({
             "success": True,
-            "message": "Secure share link generated successfully.",
+            "message": f"Secure share link generated{' and notification email delivered to ' + recipient_email if (recipient_email and email_result and email_result.get('success')) else ' successfully'}.",
             "data": {
                 "share": share_dict,
                 "share_token": share_token,
-                "share_url": f"/share?id={share_token}"
+                "share_url": f"/share?id={share_token}",
+                "full_share_url": full_share_url,
+                "email_status": email_result.get("message") if email_result else "No recipient email specified"
             }
         }), 201
 

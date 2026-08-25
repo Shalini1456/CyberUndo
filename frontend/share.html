@@ -129,8 +129,8 @@
         </div>
         <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
           <span class="text-slate-500 block text-[10px] mb-0.5">RECIPIENT</span>
-          <span class="text-slate-200 font-bold block truncate">Person A</span>
-          <span class="text-slate-500 text-[10px] block truncate">alex.morgan@partnercorp.io</span>
+          <span id="recipientName" class="text-slate-200 font-bold block truncate">Authorized Recipient</span>
+          <span id="recipientEmail" class="text-slate-500 text-[10px] block truncate">Target Recipient</span>
         </div>
       </div>
 
@@ -248,12 +248,11 @@
       if (!currentShare) {
         currentShare = {
           id: shareId,
-          filename: 'Project_Final.pdf',
-          fileSize: '2.4 MB',
-          ownerName: 'Security Lead',
-          ownerEmail: 'lead@cyberundo.io',
-          recipientName: 'Person A',
-          recipientEmail: 'alex.morgan@partnercorp.io',
+          filename: 'Protected Document',
+          fileSize: 'Encrypted',
+          ownerName: 'Authorized Owner',
+          ownerEmail: 'owner@cyberundo.io',
+          recipientEmail: 'Authorized Recipient',
           allow_download: true,
           status: 'ACTIVE',
           viewed: false,
@@ -263,16 +262,17 @@
 
       updateUI();
 
-      // 2. Fetch authoritative status from backend if apiService is available
-      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+      // 2. Fetch authoritative status from backend
+      if (window.apiService && shareId) {
         try {
           const res = await apiService.getShare(shareId);
           if (res && res.success && res.data && res.data.share) {
             const serverShare = res.data.share;
             currentShare.filename = (serverShare.file && serverShare.file.filename) || currentShare.filename;
-            currentShare.ownerName = serverShare.owner_name || currentShare.ownerName;
-            currentShare.ownerEmail = serverShare.owner_email || currentShare.ownerEmail;
-            currentShare.recipientEmail = serverShare.recipient_email || currentShare.recipientEmail;
+            currentShare.fileSize = (serverShare.file && serverShare.file.size_formatted) || "Encrypted File";
+            currentShare.ownerName = serverShare.owner_name || "Security Lead";
+            currentShare.ownerEmail = serverShare.owner_email || "";
+            currentShare.recipientEmail = serverShare.recipient_email || "";
             currentShare.allow_download = serverShare.allow_download !== false;
             currentShare.status = (serverShare.status || 'active').toUpperCase();
             currentShare.downloadCount = serverShare.download_count || currentShare.downloadCount || 0;
@@ -305,11 +305,11 @@
       const isRevoked = currentShare.status === 'REVOKED' || currentShare.status === 'EXPIRED';
 
       // Update basic fields
-      document.getElementById('shareFileName').innerText = currentShare.filename || 'Project_Final.pdf';
-      document.getElementById('shareFileSize').innerText = currentShare.fileSize || '2.4 MB';
+      document.getElementById('shareFileName').innerText = currentShare.filename || 'Protected Document';
+      document.getElementById('shareFileSize').innerText = currentShare.fileSize || 'Encrypted File';
       document.getElementById('senderName').innerText = currentShare.ownerName || 'Security Lead';
-      document.getElementById('senderEmail').innerText = currentShare.ownerEmail || 'lead@cyberundo.io';
-      document.getElementById('recipientEmail').innerText = currentShare.recipientEmail || 'alex.morgan@partnercorp.io';
+      document.getElementById('senderEmail').innerText = currentShare.ownerEmail || 'Authorized Sender';
+      document.getElementById('recipientEmail').innerText = currentShare.recipientEmail || 'Authorized Recipient';
 
       const revocationAlert = document.getElementById('revocationAlert');
       const fileShareCard = document.getElementById('fileShareCard');
@@ -425,8 +425,8 @@
 
       if (window.soundEngine) soundEngine.play('success');
 
-      // Download from server if available
-      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+      // Authoritative real physical download from backend server
+      if (window.apiService && shareId) {
         try {
           await apiService.downloadSharedFile(shareId, currentShare.filename);
           updateUI();
@@ -436,22 +436,15 @@
             currentShare.status = 'REVOKED';
             saveShareData();
             updateUI();
+            alert("Access revoked by owner. Download cancelled.");
             return;
+          } else {
+            alert((err && err.message) || "Failed to download file from server.");
           }
         }
+      } else {
+        alert("Unable to establish secure download session with server.");
       }
-
-      // Fallback synthetic download
-      const dummyContent = `%PDF-1.4\nCyberUndo Encrypted Specimen: ${currentShare.filename}\nAuthorized Recipient: ${currentShare.recipientEmail || 'alex.morgan@partnercorp.io'}\nOwner: ${currentShare.ownerName || 'Security Lead'}\nDownloaded at: ${new Date().toISOString()}`;
-      const blob = new Blob([dummyContent], { type: 'application/pdf' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = currentShare.filename || 'Project_Final.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      updateUI();
-
       updateUI();
     }
 

@@ -47,7 +47,7 @@ class KillSwitchManager {
       filesizeEl.innerText = `Vault ID: #${this.activeFile.id || 'DEMO'} • Encrypted AES-256`;
     }
     if (shareBtnText && this.currentState === STATE.IDLE) {
-      shareBtnText.innerText = `SHARE FILE (${this.activeFile.filename} → Person A)`;
+      shareBtnText.innerText = `SHARE FILE SECURELY`;
     }
   }
 
@@ -215,76 +215,117 @@ class KillSwitchManager {
 
   async handleShareFile() {
     if (this.currentState !== STATE.IDLE) return;
-    
-    this.currentState = STATE.SHARING;
-    this.lastProcessedDownloadCount = 0;
-    
+
+    // Check authentication
+    if (!window.authManager || !authManager.isAuthenticated()) {
+      if (window.toast) {
+        window.toast.error("Please login to create and manage secure shares.");
+      } else {
+        alert("Please login to create and manage secure shares.");
+      }
+      if (window.authManager) authManager.openAuthModal('login');
+      return;
+    }
+
+    // Check active file
+    if (!this.activeFile || !this.activeFile.id) {
+      if (window.toast) {
+        window.toast.error("Please select an uploaded file from your Secure Vault first.");
+      } else {
+        alert("Please select a file from your Vault first.");
+      }
+      if (window.switchMainTab) switchMainTab('vault');
+      return;
+    }
+
     // Read recipient email, expiry, and download policy from UI
     const emailInput = document.getElementById('shareRecipientEmail');
     const expirySelect = document.getElementById('shareExpirySelect');
     const allowDownloadCheck = document.getElementById('shareAllowDownload');
 
-    const recipientEmail = emailInput ? emailInput.value.trim() : 'alex.morgan@partnercorp.io';
+    const recipientEmail = emailInput ? emailInput.value.trim() : '';
+    if (!recipientEmail) {
+      if (window.toast) {
+        window.toast.error("Please enter a valid recipient email address.");
+      } else {
+        alert("Please enter a valid recipient email address.");
+      }
+      if (emailInput) emailInput.focus();
+      return;
+    }
+
     const expiry = expirySelect ? expirySelect.value : '24h';
     const allowDownload = allowDownloadCheck ? allowDownloadCheck.checked : true;
 
-    let shareToken = 'cu-share-' + Math.random().toString(36).substring(2, 9);
-
-    // Call real backend API if authenticated with active file
-    if (window.authManager && authManager.isAuthenticated() && this.activeFile && this.activeFile.id) {
-      try {
-        const res = await apiService.createShare({
-          fileId: this.activeFile.id,
-          recipientEmail: recipientEmail,
-          expiry: expiry,
-          allowDownload: allowDownload
-        });
-        if (res && res.success && res.data && res.data.share_token) {
-          shareToken = res.data.share_token;
-        }
-      } catch (err) {
-        console.warn("Backend share creation notice (using local token):", err);
-      }
+    const btnShare = document.getElementById('btnShare');
+    const btnShareText = document.getElementById('btnShareText');
+    if (btnShare) {
+      btnShare.disabled = true;
+      if (btnShareText) btnShareText.innerText = "GENERATING SERVER TOKEN...";
     }
 
-    this.currentShareId = shareToken;
-    soundEngine.play('share');
-
-    // 1. Resolve Share URL immediately
+    let shareToken = '';
     let shareUrl = '';
-    if (window.location.protocol === 'file:') {
-      const currentHref = window.location.href.split('?')[0].split('#')[0];
-      shareUrl = currentHref.replace(/index\.html$/, 'share.html');
-      if (!shareUrl.includes('share.html')) {
-        shareUrl = shareUrl.replace(/\/$/, '') + '/share.html';
-      }
-      shareUrl += `?id=${this.currentShareId}`;
-    } else {
-      const origin = window.location.origin;
-      let pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
-      shareUrl = `${origin}${pathname}/share?id=${this.currentShareId}`;
-    }
-    this.currentShareUrl = shareUrl;
+    let serverShare = null;
 
-    // 2. Render Share Link Container IMMEDIATELY (no delay)
-    this.renderShareLink(shareUrl);
-
-    // 3. Persist active share in localStorage for cross-tab recipient sync
     try {
-      const ownerUser = (window.authManager && authManager.getUser()) || {};
-      const filename = (this.activeFile && this.activeFile.filename) || 'Project_Final.pdf';
-      const fileId = (this.activeFile && this.activeFile.id) || 0;
-      const shareData = {
-        id: this.currentShareId,
-        fileId: fileId,
-        filename: filename,
-        fileSize: "2.4 MB",
-        ownerName: ownerUser.name || "Security Lead",
-        ownerEmail: ownerUser.email || "lead@cyberundo.io",
-        recipientName: "Person A",
+      const res = await apiService.createShare({
+        fileId: this.activeFile.id,
         recipientEmail: recipientEmail,
         expiry: expiry,
-        allowDownload: allowDownload,
+        allowDownload: allowDownload
+      });
+
+      if (res && res.success && res.data) {
+        shareToken = res.data.share_token;
+        serverShare = res.data.share;
+        
+        // Resolve full share URL
+        const origin = window.location.origin;
+        const pathname = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+        shareUrl = `${origin}${pathname}/share?id=${shareToken}`;
+
+        if (window.toast) {
+          window.toast.success(res.message || "Secure share link created successfully.");
+        }
+      } else {
+        throw new Error((res && res.message) || "Failed to create share on backend.");
+      }
+    } catch (err) {
+      console.error("Backend share creation failed:", err);
+      if (btnShare) {
+        btnShare.disabled = false;
+        if (btnShareText) btnShareText.innerText = "SHARE FILE SECURELY";
+      }
+      const errorMsg = (err && (err.message || (err.data && err.data.message))) || "Failed to create secure share.";
+      if (window.toast) window.toast.error(errorMsg);
+      else alert(errorMsg);
+      return;
+    }
+
+    this.currentState = STATE.SHARING;
+    this.lastProcessedDownloadCount = 0;
+    this.currentShareId = shareToken;
+    this.currentShareUrl = shareUrl;
+    soundEngine.play('share');
+
+    // 1. Render Share Link Container IMMEDIATELY with real server URL
+    this.renderShareLink(shareUrl);
+
+    // 2. Persist active share in localStorage for cross-tab recipient sync
+    try {
+      const ownerUser = (window.authManager && authManager.getUser()) || {};
+      const filename = (this.activeFile && this.activeFile.filename) || 'Document.pdf';
+      const shareData = {
+        id: this.currentShareId,
+        fileId: this.activeFile.id,
+        filename: filename,
+        fileSize: this.activeFile.size_formatted || "Encrypted File",
+        ownerName: ownerUser.name || "Security Lead",
+        ownerEmail: ownerUser.email || "lead@cyberundo.io",
+        recipientEmail: recipientEmail,
+        expiry: expiry,
+        allow_download: allowDownload,
         status: "ACTIVE",
         viewed: false,
         downloadCount: 0,
@@ -297,13 +338,11 @@ class KillSwitchManager {
       console.warn("Storage sync warning:", err);
     }
 
-    // 4. Immediately enable REVOKE ACCESS button so owner can revoke at any time
+    // 3. Immediately arm REVOKE ACCESS button so owner can revoke at any time
     this.activateRevokeButton();
 
-    // 5. Update Share button state & Visuals safely
+    // 4. Update Share button state & Visuals safely
     try {
-      const btnShare = document.getElementById('btnShare');
-      const btnShareText = document.getElementById('btnShareText');
       const shareCard = document.getElementById('shareFileCard');
       const fileBadgeState = document.getElementById('fileBadgeState');
 
@@ -313,7 +352,7 @@ class KillSwitchManager {
         btnShare.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
       }
       if (btnShareText) {
-        btnShareText.innerHTML = `✓ SHARED WITH PERSON A`;
+        btnShareText.innerHTML = `✓ SHARED WITH ${recipientEmail.toUpperCase()}`;
       }
       if (shareCard) {
         shareCard.classList.add('glass-card-glow-cyan');
@@ -326,25 +365,23 @@ class KillSwitchManager {
       this.updateStepPills(1);
 
       const topStatusText = document.getElementById('topStatusText');
-      if (topStatusText) topStatusText.innerText = 'LINK ACTIVE — MONITORING';
+      if (topStatusText) topStatusText.innerText = 'LINK ACTIVE — MONITORING ACCESS';
       const topStatusDot = document.getElementById('topStatusDot');
       if (topStatusDot) topStatusDot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
 
       const badgeShared = document.getElementById('badgeShared');
       if (badgeShared) badgeShared.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-cyan-950/80 border border-cyan-500/60 text-cyan-300 transition-all';
       const badgeSharedTime = document.getElementById('badgeSharedTime');
-      if (badgeSharedTime) badgeSharedTime.innerText = '00:00:01';
+      if (badgeSharedTime) badgeSharedTime.innerText = 'Just now';
 
       const nowTime = new Date().toTimeString().split(' ')[0];
-      const filename = (this.activeFile && this.activeFile.filename) || 'Project_Final.pdf';
-      this.addLogEntry(nowTime, `File <b>${filename}</b> shared to <b>alex.morgan@partnercorp.io</b>`, 'shared');
+      const filename = (this.activeFile && this.activeFile.filename) || 'Document.pdf';
+      this.addLogEntry(nowTime, `File <b>${filename}</b> shared securely to <b>${recipientEmail}</b>`, 'shared');
 
       const connectorLine1 = document.getElementById('connectorLine1');
       if (connectorLine1) connectorLine1.className = 'h-0.5 w-full bg-cyan-500 laser-line-active';
       const connectorArrow1 = document.getElementById('connectorArrow1');
       if (connectorArrow1) connectorArrow1.className = 'w-4 h-4 text-cyan-400 absolute';
-      const nodePersonA = document.getElementById('nodePersonA');
-      if (nodePersonA) nodePersonA.classList.add('border-cyan-500/40', 'shadow-cyan-500/10');
       
       const activityLive = document.getElementById('activityLiveIndicator');
       if (activityLive) {
@@ -356,9 +393,6 @@ class KillSwitchManager {
     } catch(err) {
       console.warn("DOM update non-fatal error:", err);
     }
-
-    // 6. Begin background progression
-    this.simulateRapidProgression();
   }
 
   triggerViewedState(fromCrossTab = false) {
@@ -372,11 +406,11 @@ class KillSwitchManager {
       badgeViewed.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-blue-950/80 border border-blue-500/60 text-blue-300 transition-all';
     }
     const badgeTime = document.getElementById('badgeViewedTime');
-    if (badgeTime) badgeTime.innerText = '00:00:03';
+    if (badgeTime) badgeTime.innerText = 'Live';
 
     const nowTime = new Date().toTimeString().split(' ')[0];
-    const sourceLabel = fromCrossTab ? '<b>Person A</b> (via Recipient View Tab)' : '<b>Person A</b> (Chrome on macOS, IP: 198.51.100.24, SF)';
-    this.addLogEntry(nowTime, `${sourceLabel} opened and viewed access link`, 'viewed');
+    const sourceLabel = '<b>Authorized Recipient</b> opened and viewed protected document';
+    this.addLogEntry(nowTime, sourceLabel, 'viewed');
 
     const ep1 = document.getElementById('endpoint1');
     if (ep1) {
@@ -401,10 +435,10 @@ class KillSwitchManager {
       badgeDownloaded.className = 'flex flex-col items-center justify-center p-2.5 rounded-lg bg-amber-950/80 border border-amber-500/60 text-amber-300 transition-all';
     }
     const badgeTime = document.getElementById('badgeDownloadedTime');
-    if (badgeTime) badgeTime.innerText = `00:00:06 (${count}x)`;
+    if (badgeTime) badgeTime.innerText = `Active (${count}x)`;
 
     const nowTime = new Date().toTimeString().split(' ')[0];
-    const sourceLabel = fromCrossTab ? `Download #${count} triggered by <b>Person A</b> (Recipient Portal)` : `Download #${count} initiated by <b>Person A</b> (MacBook Pro)`;
+    const sourceLabel = `Download #${count} completed by <b>Authorized Recipient</b>`;
     this.addLogEntry(nowTime, sourceLabel, 'download');
 
     const ep1 = document.getElementById('endpoint1');
@@ -422,123 +456,13 @@ class KillSwitchManager {
     if (arrow2) arrow2.className = 'w-4 h-4 text-amber-400 absolute';
     
     const nodeSubtitle = document.getElementById('downloadsNodeSubtitle');
-    if (nodeSubtitle) nodeSubtitle.innerText = `${count} active node${count === 1 ? '' : 's'}`;
+    if (nodeSubtitle) nodeSubtitle.innerText = `${count} download${count === 1 ? '' : 's'}`;
     const formula = document.getElementById('propagationFormula');
-    if (formula) formula.innerText = `You → Person A → ${count} Download${count === 1 ? '' : 's'}`;
+    if (formula) formula.innerText = `Owner → Recipient → ${count} Download${count === 1 ? '' : 's'}`;
     const activeSessions = document.getElementById('activeSessionsCount');
-    if (activeSessions) activeSessions.innerText = `${count} Active Session${count === 1 ? '' : 's'}`;
+    if (activeSessions) activeSessions.innerText = `${count} Active Download${count === 1 ? '' : 's'}`;
 
     lucide.createIcons();
-  }
-
-  simulateRapidProgression() {
-    this.propagationTimer1 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
-      const badgeTime = document.getElementById('badgeViewedTime');
-      if (badgeTime && badgeTime.innerText === 'Pending') {
-        this.triggerViewedState(false);
-      }
-    }, 1500);
-
-    this.propagationTimer2 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
-      const badgeTime = document.getElementById('badgeDownloadedTime');
-      if (badgeTime && badgeTime.innerText === 'Pending') {
-        this.triggerDownloadState(1, false);
-      }
-    }, 3000);
-
-    this.propagationTimer3 = setTimeout(() => {
-      if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
-
-      this.currentState = STATE.ACTIVE_THREAT;
-      soundEngine.play('threat');
-      this.updateStepPills(3);
-
-      const badgeTime = document.getElementById('badgeDownloadedTime');
-      if (badgeTime) badgeTime.innerText = '00:00:09 (3x)';
-      
-      const nowTime = new Date().toTimeString().split(' ')[0];
-      this.addLogEntry(nowTime, '⚠️ Link forwarded! Download #2 from Windows 11 (IP: 203.0.113.45, Frankfurt)', 'threat');
-      this.addLogEntry(nowTime, '🚨 Download #3 from Unverified Cloud Node (IP: 192.0.2.89, Singapore)', 'threat');
-
-      const ep2 = document.getElementById('endpoint2');
-      if (ep2) {
-        ep2.classList.remove('opacity-50');
-        ep2.classList.add('border-amber-500/40', 'bg-amber-950/20');
-        const pill = ep2.querySelector('.status-pill');
-        if (pill) {
-          pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-600';
-          pill.innerText = 'Downloaded';
-        }
-      }
-
-      const ep3 = document.getElementById('endpoint3');
-      if (ep3) {
-        ep3.classList.remove('opacity-50');
-        ep3.classList.add('border-red-500/40', 'bg-red-950/20');
-        const pill = ep3.querySelector('.status-pill');
-        if (pill) {
-          pill.className = 'status-pill text-[10px] px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-600 animate-pulse';
-          pill.innerText = 'External Leak';
-        }
-      }
-
-      const blastSection = document.getElementById('blastRadiusSection');
-      if (blastSection) blastSection.classList.add('glass-card-glow-danger');
-
-      const exposureBadge = document.getElementById('exposureBadge');
-      if (exposureBadge) {
-        exposureBadge.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold bg-red-950 text-red-400 border border-red-500 animate-pulse';
-      }
-      const expText = document.getElementById('exposureText');
-      if (expText) expText.innerText = 'Exposure: HIGH';
-      const expIcon = document.getElementById('exposureIcon');
-      if (expIcon) expIcon.setAttribute('data-lucide', 'alert-octagon');
-
-      const blastSummary = document.getElementById('blastRadiusSummary');
-      if (blastSummary) {
-        blastSummary.innerText = '3 Endpoints Compromised';
-        blastSummary.className = 'text-red-400 font-mono font-bold';
-      }
-
-      const dlIconBg = document.getElementById('downloadsIconBg');
-      if (dlIconBg) {
-        dlIconBg.className = 'w-9 h-9 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mb-1.5 border border-red-500/40';
-      }
-      const dlTitle = document.getElementById('downloadsNodeTitle');
-      if (dlTitle) dlTitle.className = 'text-xs font-bold text-red-400 font-mono';
-      const dlSubtitle = document.getElementById('downloadsNodeSubtitle');
-      if (dlSubtitle) {
-        dlSubtitle.innerText = '3 active downloads';
-        dlSubtitle.className = 'text-[10px] text-red-300 font-mono';
-      }
-
-      const formula = document.getElementById('propagationFormula');
-      if (formula) {
-        formula.innerText = 'You → Person A → 3 Downloads';
-        formula.className = 'px-2.5 py-1 rounded bg-red-950/80 text-red-300 border border-red-500/50 font-bold';
-      }
-
-      const activeSessions = document.getElementById('activeSessionsCount');
-      if (activeSessions) {
-        activeSessions.innerText = '3 Active Sessions Detected';
-        activeSessions.className = 'text-red-400 font-bold';
-      }
-
-      const conn2 = document.getElementById('connectorLine2');
-      const arrow2 = document.getElementById('connectorArrow2');
-      if (conn2) conn2.className = 'h-0.5 w-full bg-red-500 laser-line-danger';
-      if (arrow2) arrow2.className = 'w-4 h-4 text-red-400 absolute';
-
-      const topText = document.getElementById('topStatusText');
-      if (topText) topText.innerText = 'CRITICAL THREAT — 3 DOWNLOADS DETECTED';
-      const topDot = document.getElementById('topStatusDot');
-      if (topDot) topDot.className = 'w-2 h-2 rounded-full bg-red-500 animate-ping';
-
-      this.activateRevokeButton();
-      lucide.createIcons();
-    }, 4500);
   }
 
   activateRevokeButton() {
@@ -690,7 +614,7 @@ class KillSwitchManager {
 
     const formula = document.getElementById('propagationFormula');
     if (formula) {
-      formula.innerText = 'You → Person A → 0 Active [REVOKED / NULLIFIED]';
+      formula.innerText = 'Owner → Recipient → 0 Active [REVOKED / NULLIFIED]';
       formula.className = 'px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-bold';
     }
 
@@ -855,7 +779,7 @@ class KillSwitchManager {
       btnShare.className = 'w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-semibold py-3.5 px-4 shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition-all flex items-center justify-center gap-2 text-sm tracking-wide';
     }
     if (btnShareText) {
-      btnShareText.innerText = `SHARE FILE (${this.activeFile.filename} → Person A)`;
+      btnShareText.innerText = `SHARE FILE SECURELY`;
     }
 
     const shareCard = document.getElementById('shareFileCard');
@@ -923,7 +847,7 @@ class KillSwitchManager {
     }
 
     if (document.getElementById('propagationFormula')) {
-      document.getElementById('propagationFormula').innerText = 'You → Person A → 0 Downloads';
+      document.getElementById('propagationFormula').innerText = 'Owner → Recipient → 0 Downloads';
       document.getElementById('propagationFormula').className = 'px-2.5 py-1 rounded bg-slate-900 text-slate-400 border border-slate-800 font-bold';
     }
     if (document.getElementById('activeSessionsCount')) {

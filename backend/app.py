@@ -1,9 +1,17 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
 from database import db, init_db
 from routes import auth_bp, file_bp, share_bp
+
+# Resolve frontend assets directory path (supports repo root or frontend subdirectory)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
+if not os.path.exists(os.path.join(FRONTEND_DIR, "index.html")):
+    FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "frontend"))
+if not os.path.exists(os.path.join(FRONTEND_DIR, "index.html")):
+    FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
 
 def create_app(config_class=Config):
     """
@@ -37,6 +45,43 @@ def create_app(config_class=Config):
                 "service": "CyberUndo Backend Core (Member 1)"
             }
         }), 200
+
+    # -------------------------------------------------------------------------
+    # Frontend Routes & Static Asset Delivery (Serves CyberUndo UI on Render)
+    # -------------------------------------------------------------------------
+    @app.route("/", methods=["GET"])
+    def serve_frontend_root():
+        """Serve the primary CyberUndo Dashboard."""
+        return send_from_directory(FRONTEND_DIR, "index.html")
+
+    @app.route("/share", methods=["GET"])
+    @app.route("/share/<path:subpath>", methods=["GET"])
+    def serve_recipient_share_portal(subpath=None):
+        """Serve the Recipient Share portal."""
+        return send_from_directory(FRONTEND_DIR, "share.html")
+
+    @app.route("/<path:path>", methods=["GET"])
+    def serve_static_assets(path):
+        """Serve CSS, JS, and static assets, with SPA fallback for client-side routing."""
+        # Never intercept /api/* routes
+        if path.startswith("api/") or path == "api":
+            return jsonify({
+                "success": False,
+                "message": "API endpoint not found."
+            }), 404
+
+        file_path = os.path.join(FRONTEND_DIR, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_from_directory(FRONTEND_DIR, path)
+
+        # SPA fallback for extensionless routes
+        if not os.path.splitext(path)[1]:
+            return send_from_directory(FRONTEND_DIR, "index.html")
+
+        return jsonify({
+            "success": False,
+            "message": "Resource not found"
+        }), 404
 
     # -------------------------------------------------------------------------
     # Consistent JSON Error Handlers

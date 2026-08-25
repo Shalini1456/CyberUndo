@@ -27,3 +27,9 @@ class Config:
         "txt", "pdf", "png", "jpg", "jpeg", "gif", 
         "doc", "docx", "xls", "xlsx", "csv", "zip", "json"
     }
+
+    # Transactional Email (Resend API) & Frontend URL
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+    EMAIL_FROM = os.environ.get("EMAIL_FROM", "CyberUndo Security <onboarding@resend.dev>")
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://cyber-undo.vercel.app")
+
