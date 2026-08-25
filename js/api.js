@@ -49,7 +49,10 @@ class ApiService {
       if (options.isBlob) {
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.message || `Download failed (${response.status})`);
+          const error = new Error(errData.message || `Download failed (HTTP ${response.status})`);
+          error.status = response.status;
+          error.data = errData;
+          throw error;
         }
         return await response.blob();
       }
@@ -186,12 +189,20 @@ class ApiService {
 
     const downloadUrl = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
+    a.style.display = "none";
     a.href = downloadUrl;
     a.download = filename || `shared_document`;
+    a.target = "_blank";
     document.body.appendChild(a);
     a.click();
-    window.URL.revokeObjectURL(downloadUrl);
-    a.remove();
+
+    // Defer revokeObjectURL so mobile and desktop browsers have time to process download
+    setTimeout(() => {
+      try {
+        window.URL.revokeObjectURL(downloadUrl);
+        a.remove();
+      } catch (e) {}
+    }, 10000);
   }
 
   async revokeShare(tokenOrId) {

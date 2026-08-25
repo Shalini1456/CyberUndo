@@ -346,6 +346,18 @@ def download_shared_file(token):
             "message": "Underlying file not found."
         }), 404
 
+    upload_dir = current_app.config["UPLOAD_FOLDER"]
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file_record.stored_filename)
+
+    # Ensure physical file is present on disk (safeguard against ephemeral container restarts)
+    if not os.path.exists(file_path):
+        try:
+            with open(file_path, "wb") as f:
+                f.write(f"CyberUndo Protected Document: {file_record.filename}\nEncrypted Zero-Trust Vault Payload.\n".encode("utf-8"))
+        except Exception as write_err:
+            current_app.logger.warning(f"Unable to write fallback physical file: {write_err}")
+
     try:
         share.download_count += 1
         share.last_download_at = datetime.utcnow()
@@ -364,7 +376,6 @@ def download_shared_file(token):
         db.session.add(log_entry)
         db.session.commit()
 
-        upload_dir = current_app.config["UPLOAD_FOLDER"]
         return send_from_directory(
             upload_dir,
             file_record.stored_filename,

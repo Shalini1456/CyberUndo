@@ -11,6 +11,7 @@ class KillSwitchManager {
   constructor() {
     this.currentState = STATE.IDLE;
     this.currentShareId = null;
+    this.viewRecorded = false;
     this.activeFile = {
       id: 0,
       filename: "Project_Final.pdf",
@@ -77,13 +78,48 @@ class KillSwitchManager {
       this.handleExternalStorageEvent();
     });
 
-    // Fallback interval to catch same-tab/incognito events smoothly
+    // Authoritative Server-backed polling (fetches real DB state across devices/phones)
     if (this.syncInterval) clearInterval(this.syncInterval);
     this.syncInterval = setInterval(() => {
       if (this.currentState === STATE.SHARING || this.currentState === STATE.ACTIVE_THREAT) {
+        this.pollServerShareStatus();
         this.handleExternalStorageEvent();
       }
-    }, 600);
+    }, 1000);
+  }
+
+  async pollServerShareStatus() {
+    if (!this.currentShareId || this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
+    if (!window.apiService) return;
+
+    try {
+      const res = await apiService.getShare(this.currentShareId);
+      if (res && res.success && res.data && res.data.share) {
+        const serverShare = res.data.share;
+
+        // 1. Authoritative VIEW Detection from backend DB
+        if ((serverShare.view_count > 0 || serverShare.first_viewed_at) && !this.viewRecorded && this.currentState !== STATE.REVOKED) {
+          this.viewRecorded = true;
+          this.triggerViewedState(false);
+        }
+
+        // 2. Authoritative DOWNLOAD Detection from backend DB
+        if (serverShare.download_count > this.lastProcessedDownloadCount && this.currentState !== STATE.REVOKED) {
+          this.lastProcessedDownloadCount = serverShare.download_count;
+          this.triggerDownloadState(serverShare.download_count, false);
+        }
+
+        // 3. Authoritative REVOKE / EXPIRED Status from backend DB
+        if (serverShare.status === 'revoked' && this.currentState !== STATE.REVOKED) {
+          this.handleRevokeAccess(true);
+        }
+      }
+    } catch (err) {
+      // 403 Forbidden indicates token was revoked or expired on server
+      if (err && err.status === 403 && this.currentState !== STATE.REVOKED) {
+        this.handleRevokeAccess(true);
+      }
+    }
   }
 
   handleExternalStorageEvent() {
@@ -95,7 +131,8 @@ class KillSwitchManager {
       const share = JSON.parse(rawData);
 
       // If remote tab triggered View
-      if (share.viewed && this.currentState !== STATE.REVOKED) {
+      if (share.viewed && !this.viewRecorded && this.currentState !== STATE.REVOKED) {
+        this.viewRecorded = true;
         const badgeViewedTime = document.getElementById('badgeViewedTime');
         if (badgeViewedTime && badgeViewedTime.innerText === 'Pending') {
           this.triggerViewedState(true);
@@ -304,6 +341,7 @@ class KillSwitchManager {
     }
 
     this.currentState = STATE.SHARING;
+    this.viewRecorded = false;
     this.lastProcessedDownloadCount = 0;
     this.currentShareId = shareToken;
     this.currentShareUrl = shareUrl;
@@ -490,7 +528,7 @@ class KillSwitchManager {
     }
   }
 
-  handleRevokeAccess() {
+  handleRevokeAccess(fromServerSync = false) {
     // Prevent duplicate revokes or revoking from idle
     if (this.currentState === STATE.REVOKED || this.currentState === STATE.IDLE) return;
 
@@ -502,8 +540,8 @@ class KillSwitchManager {
     this.currentState = STATE.REVOKED;
     soundEngine.play('revoke');
 
-    // Call real backend API to revoke token on server if authenticated
-    if (this.currentShareId && window.authManager && authManager.isAuthenticated()) {
+    // Call real backend API to revoke token on server if authenticated and user clicked revoke
+    if (!fromServerSync && this.currentShareId && window.authManager && authManager.isAuthenticated()) {
       apiService.revokeShare(this.currentShareId).catch(err => {
         console.warn("Backend revoke notice:", err);
       });
@@ -748,6 +786,7 @@ class KillSwitchManager {
 
     this.currentState = STATE.IDLE;
     this.currentShareId = null;
+    this.viewRecorded = false;
     this.lastProcessedDownloadCount = 0;
     if (playSoundEffect) soundEngine.play('share');
 

@@ -275,9 +275,19 @@
             currentShare.recipientEmail = serverShare.recipient_email || "";
             currentShare.allow_download = serverShare.allow_download !== false;
             currentShare.status = (serverShare.status || 'active').toUpperCase();
-            currentShare.downloadCount = serverShare.download_count || currentShare.downloadCount || 0;
+            currentShare.downloadCount = serverShare.download_count || 0;
+            currentShare.viewCount = serverShare.view_count || 0;
             saveShareData();
             updateUI();
+
+            // Automatically record landing view on server once per browser session
+            if (currentShare.status === 'ACTIVE' && !sessionStorage.getItem('cyberundo_viewed_' + shareId)) {
+              sessionStorage.setItem('cyberundo_viewed_' + shareId, '1');
+              apiService.recordShareView(shareId).then(() => {
+                currentShare.viewed = true;
+                saveShareData();
+              }).catch(err => console.warn("View record notice:", err));
+            }
           }
         } catch (err) {
           // If server returned 403 Forbidden -> Revoked or Expired
@@ -413,39 +423,64 @@
     }
 
     async function handleRecipientDownload() {
-      if (!currentShare || currentShare.status === 'REVOKED') return;
+      if (!currentShare || currentShare.status === 'REVOKED' || currentShare.status === 'EXPIRED') return;
       if (currentShare.allow_download === false) {
         alert("Downloading has been restricted for this view-only share link.");
         return;
       }
 
-      currentShare.downloadCount = (currentShare.downloadCount || 0) + 1;
-      currentShare.lastDownloadAt = new Date().toISOString();
-      saveShareData();
+      const btnDownload = document.getElementById('btnDownloadFile');
+      const originalBtnHTML = btnDownload ? btnDownload.innerHTML : '';
 
-      if (window.soundEngine) soundEngine.play('success');
-
-      // Authoritative real physical download from backend server
-      if (window.apiService && shareId) {
-        try {
-          await apiService.downloadSharedFile(shareId, currentShare.filename);
-          updateUI();
-          return;
-        } catch(err) {
-          if (err.status === 403) {
-            currentShare.status = 'REVOKED';
-            saveShareData();
-            updateUI();
-            alert("Access revoked by owner. Download cancelled.");
-            return;
-          } else {
-            alert((err && err.message) || "Failed to download file from server.");
-          }
+      try {
+        // Visual In-Flight Feedback
+        if (btnDownload) {
+          btnDownload.disabled = true;
+          btnDownload.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin text-white"></i> <span>DOWNLOADING FILE...</span>`;
+          if (window.lucide) lucide.createIcons();
         }
-      } else {
-        alert("Unable to establish secure download session with server.");
+
+        // Authoritative real physical download from backend server
+        if (window.apiService && shareId) {
+          await apiService.downloadSharedFile(shareId, currentShare.filename);
+
+          if (window.soundEngine) soundEngine.play('success');
+
+          // Download Succeeded -> Show completion state
+          if (btnDownload) {
+            btnDownload.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> <span>DOWNLOAD COMPLETED</span>`;
+            if (window.lucide) lucide.createIcons();
+          }
+
+          // Reload authoritative metadata from server
+          await loadShareData();
+
+          setTimeout(() => {
+            if (btnDownload && currentShare.status !== 'REVOKED') {
+              btnDownload.disabled = false;
+              updateUI();
+            }
+          }, 2000);
+          return;
+        } else {
+          throw new Error("Unable to establish secure download session with server.");
+        }
+      } catch (err) {
+        console.error("Download failure:", err);
+        if (err.status === 403 || (err.data && (err.data.status === 'revoked' || err.data.status === 'expired'))) {
+          currentShare.status = 'REVOKED';
+          saveShareData();
+          updateUI();
+          alert("Access has been revoked by owner. Download cancelled.");
+        } else {
+          if (btnDownload) {
+            btnDownload.disabled = false;
+            btnDownload.innerHTML = originalBtnHTML;
+            if (window.lucide) lucide.createIcons();
+          }
+          alert((err && err.message) || "Failed to download file from server.");
+        }
       }
-      updateUI();
     }
 
     // Storage event synchronization across tabs
@@ -461,12 +496,6 @@
     // Initial load
     document.addEventListener('DOMContentLoaded', () => {
       loadShareData();
-      // Auto-record initial view on landing if active
-      if (currentShare && currentShare.status !== 'REVOKED' && !currentShare.viewed) {
-        currentShare.viewed = true;
-        currentShare.viewedAt = new Date().toISOString();
-        saveShareData();
-      }
       lucide.createIcons();
     });
   </script>
