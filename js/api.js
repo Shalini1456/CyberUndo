@@ -149,6 +149,62 @@ class ApiService {
     window.URL.revokeObjectURL(downloadUrl);
     a.remove();
   }
+
+  // ==========================================
+  // 4. SECURE SHARING & REVOKE (MEMBER 2)
+  // ==========================================
+  async createShare({ fileId, recipientEmail, expiry = "24h", allowDownload = true }) {
+    return this.request("/shares", {
+      method: "POST",
+      body: JSON.stringify({
+        file_id: fileId,
+        recipient_email: recipientEmail,
+        expiry: expiry,
+        allow_download: allowDownload
+      })
+    });
+  }
+
+  async listShares(fileId = null) {
+    const url = fileId ? `/shares?file_id=${fileId}` : "/shares";
+    return this.request(url, { method: "GET" });
+  }
+
+  async getShare(token) {
+    return this.request(`/shares/${token}`, { method: "GET" });
+  }
+
+  async recordShareView(token) {
+    return this.request(`/shares/${token}/view`, { method: "POST" });
+  }
+
+  async downloadSharedFile(token, filename) {
+    const blob = await this.request(`/shares/${token}/download`, {
+      method: "GET",
+      isBlob: true
+    });
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename || `shared_document`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(downloadUrl);
+    a.remove();
+  }
+
+  async revokeShare(tokenOrId) {
+    return this.request(`/shares/${tokenOrId}/revoke`, { method: "POST" });
+  }
+
+  async revokeAllShares(fileId = null) {
+    return this.request("/shares/revoke-all", {
+      method: "POST",
+      body: JSON.stringify(fileId ? { file_id: fileId } : {})
+    });
+  }
 }
 
 window.apiService = new ApiService();
+

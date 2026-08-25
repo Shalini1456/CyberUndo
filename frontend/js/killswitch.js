@@ -213,12 +213,41 @@ class KillSwitchManager {
     }
   }
 
-  handleShareFile() {
+  async handleShareFile() {
     if (this.currentState !== STATE.IDLE) return;
     
     this.currentState = STATE.SHARING;
     this.lastProcessedDownloadCount = 0;
-    this.currentShareId = 'cu-share-' + Math.random().toString(36).substring(2, 9);
+    
+    // Read recipient email, expiry, and download policy from UI
+    const emailInput = document.getElementById('shareRecipientEmail');
+    const expirySelect = document.getElementById('shareExpirySelect');
+    const allowDownloadCheck = document.getElementById('shareAllowDownload');
+
+    const recipientEmail = emailInput ? emailInput.value.trim() : 'alex.morgan@partnercorp.io';
+    const expiry = expirySelect ? expirySelect.value : '24h';
+    const allowDownload = allowDownloadCheck ? allowDownloadCheck.checked : true;
+
+    let shareToken = 'cu-share-' + Math.random().toString(36).substring(2, 9);
+
+    // Call real backend API if authenticated with active file
+    if (window.authManager && authManager.isAuthenticated() && this.activeFile && this.activeFile.id) {
+      try {
+        const res = await apiService.createShare({
+          fileId: this.activeFile.id,
+          recipientEmail: recipientEmail,
+          expiry: expiry,
+          allowDownload: allowDownload
+        });
+        if (res && res.success && res.data && res.data.share_token) {
+          shareToken = res.data.share_token;
+        }
+      } catch (err) {
+        console.warn("Backend share creation notice (using local token):", err);
+      }
+    }
+
+    this.currentShareId = shareToken;
     soundEngine.play('share');
 
     // 1. Resolve Share URL immediately
@@ -253,7 +282,9 @@ class KillSwitchManager {
         ownerName: ownerUser.name || "Security Lead",
         ownerEmail: ownerUser.email || "lead@cyberundo.io",
         recipientName: "Person A",
-        recipientEmail: "alex.morgan@partnercorp.io",
+        recipientEmail: recipientEmail,
+        expiry: expiry,
+        allowDownload: allowDownload,
         status: "ACTIVE",
         viewed: false,
         downloadCount: 0,
@@ -547,8 +578,12 @@ class KillSwitchManager {
     this.currentState = STATE.REVOKED;
     soundEngine.play('revoke');
 
-    document.body.classList.add('revoke-shockwave');
-    setTimeout(() => document.body.classList.remove('revoke-shockwave'), 600);
+    // Call real backend API to revoke token on server if authenticated
+    if (this.currentShareId && window.authManager && authManager.isAuthenticated()) {
+      apiService.revokeShare(this.currentShareId).catch(err => {
+        console.warn("Backend revoke notice:", err);
+      });
+    }
 
     // Update shared state in localStorage to REVOKED so recipient tab locks immediately
     if (this.currentShareId) {
@@ -992,13 +1027,26 @@ class KillSwitchManager {
     }
   }
 
+  async handleRevokeAll() {
+    if (window.authManager && authManager.isAuthenticated()) {
+      const fileId = (this.activeFile && this.activeFile.id) || null;
+      try {
+        await apiService.revokeAllShares(fileId);
+        window.toast && window.toast.success("All active share links revoked successfully.");
+      } catch (err) {
+        console.warn("Backend revoke-all notice:", err);
+      }
+    }
+    this.handleRevokeAccess();
+  }
+
   updateUI() {
     this.updateFileDisplay();
     lucide.createIcons();
   }
 }
 
-// Global helpers for copying share link and opening recipient view
+// Global helpers for copying share link, opening recipient view, and revoking
 window.copyShareLink = function() {
   if (window.killSwitchManager) {
     window.killSwitchManager.copyShareLink();
@@ -1010,5 +1058,12 @@ window.openRecipientView = function() {
     window.killSwitchManager.openRecipientView();
   }
 };
+
+window.handleRevokeAll = function() {
+  if (window.killSwitchManager) {
+    window.killSwitchManager.handleRevokeAll();
+  }
+};
+
 
 window.killSwitchManager = new KillSwitchManager();

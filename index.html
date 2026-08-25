@@ -258,21 +258,52 @@
             </div>
           </div>
 
-          <!-- Recipient Specification -->
+          <!-- Recipient & Security Policy Configuration -->
           <div class="space-y-3 mb-5">
             <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
-              <span>Intended Recipient:</span>
-              <span class="text-slate-500">One-time cryptographic share token</span>
+              <span>Recipient Email:</span>
+              <span class="text-slate-500">Targeted Access Control</span>
             </div>
-            <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-sm">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-xs text-white">
-                PA
+            <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono">
+              <i data-lucide="mail" class="w-4 h-4 text-purple-400 flex-shrink-0"></i>
+              <input 
+                type="email" 
+                id="shareRecipientEmail" 
+                value="alex.morgan@partnercorp.io" 
+                placeholder="recipient@partnercorp.io"
+                class="flex-1 bg-transparent text-slate-200 focus:outline-none placeholder-slate-600 text-xs font-mono"
+              />
+              <span class="text-[10px] font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-500/30">Person A</span>
+            </div>
+
+            <!-- Expiry & Download Permissions Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs font-mono">
+              <!-- Expiry Selector -->
+              <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <label class="text-[10px] text-slate-400 font-bold block flex items-center gap-1">
+                  <i data-lucide="clock" class="w-3 h-3 text-cyan-400"></i> LINK EXPIRY
+                </label>
+                <select id="shareExpirySelect" class="w-full bg-slate-950 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-cyan-400 cursor-pointer font-mono">
+                  <option value="1h">1 Hour (Fast Expire)</option>
+                  <option value="24h" selected>24 Hours (Standard)</option>
+                  <option value="7d">7 Days (Extended)</option>
+                  <option value="never">Never (Persistent)</option>
+                </select>
               </div>
-              <div class="flex-1 min-w-0">
-                <p class="font-semibold text-slate-200">Person A</p>
-                <p class="text-xs text-slate-400 font-mono truncate">alex.morgan@partnercorp.io</p>
+
+              <!-- Allow Download Toggle -->
+              <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold block flex items-center gap-1">
+                    <i data-lucide="download" class="w-3 h-3 text-cyan-400"></i> PERMISSION
+                  </span>
+                  <span class="text-xs text-slate-300 font-mono font-semibold block">Allow Download</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="shareAllowDownload" checked class="sr-only peer" />
+                  <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-600"></div>
+                </label>
               </div>
-              <span class="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded border border-slate-700">External Vendor</span>
             </div>
           </div>
 
@@ -409,8 +440,8 @@
             Sent sensitive data by accident or detected unauthorized spreading? Trigger <span class="text-red-400 font-semibold">CyberUndo</span> to instantly nullify access tokens, sever active connections, and invalidate all links.
           </p>
 
-          <!-- Big Red Hero REVOKE ACCESS Button -->
-          <div class="relative">
+          <!-- Big Red Hero REVOKE ACCESS Button + Revoke All Actions -->
+          <div class="space-y-2.5">
             <button 
               id="btnRevoke" 
               onclick="handleRevokeAccess()" 
@@ -427,6 +458,19 @@
                 Ctrl + Z
               </span>
             </button>
+
+            <!-- Revoke All Links Secondary Option -->
+            <div class="flex items-center justify-between pt-1">
+              <span class="text-[11px] text-slate-500 font-mono">Mass Incident Containment:</span>
+              <button 
+                type="button"
+                id="btnRevokeAll"
+                onclick="handleRevokeAll()"
+                class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-950 text-red-400 hover:text-red-300 border border-red-800/60 transition text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="flame" class="w-3.5 h-3.5 text-red-400"></i>
+                <span>REVOKE ALL ACTIVE LINKS</span>
+              </button>
+            </div>
           </div>
 
           <div id="revokeHelperText" class="text-[11px] text-slate-500 text-center mt-2.5 font-mono">

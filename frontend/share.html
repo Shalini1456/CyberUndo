@@ -202,8 +202,12 @@
     CyberUndo Zero-Trust Security Infrastructure • Recipient Token Gateway
   </footer>
 
+  <script src="/js/config.js"></script>
+  <script src="./js/config.js"></script>
   <script src="/js/audio.js"></script>
   <script src="./js/audio.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="./js/api.js"></script>
   <script>
     // Recipient Page Controller
     const urlParams = new URLSearchParams(window.location.search);
@@ -230,7 +234,8 @@
 
     let currentShare = null;
 
-    function loadShareData() {
+    async function loadShareData() {
+      // 1. First attempt to load cached/local share state
       const rawData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(GLOBAL_ACTIVE_KEY);
       if (rawData) {
         try {
@@ -249,6 +254,7 @@
           ownerEmail: 'lead@cyberundo.io',
           recipientName: 'Person A',
           recipientEmail: 'alex.morgan@partnercorp.io',
+          allow_download: true,
           status: 'ACTIVE',
           viewed: false,
           downloadCount: 0
@@ -256,6 +262,32 @@
       }
 
       updateUI();
+
+      // 2. Fetch authoritative status from backend if apiService is available
+      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+        try {
+          const res = await apiService.getShare(shareId);
+          if (res && res.success && res.data && res.data.share) {
+            const serverShare = res.data.share;
+            currentShare.filename = (serverShare.file && serverShare.file.filename) || currentShare.filename;
+            currentShare.ownerName = serverShare.owner_name || currentShare.ownerName;
+            currentShare.ownerEmail = serverShare.owner_email || currentShare.ownerEmail;
+            currentShare.recipientEmail = serverShare.recipient_email || currentShare.recipientEmail;
+            currentShare.allow_download = serverShare.allow_download !== false;
+            currentShare.status = (serverShare.status || 'active').toUpperCase();
+            currentShare.downloadCount = serverShare.download_count || currentShare.downloadCount || 0;
+            saveShareData();
+            updateUI();
+          }
+        } catch (err) {
+          // If server returned 403 Forbidden -> Revoked or Expired
+          if (err.status === 403 || (err.data && (err.data.status === 'revoked' || err.data.status === 'expired'))) {
+            currentShare.status = 'REVOKED';
+            saveShareData();
+            updateUI();
+          }
+        }
+      }
     }
 
     function saveShareData() {
@@ -270,13 +302,14 @@
     function updateUI() {
       if (!currentShare) return;
 
-      const isRevoked = currentShare.status === 'REVOKED';
+      const isRevoked = currentShare.status === 'REVOKED' || currentShare.status === 'EXPIRED';
 
       // Update basic fields
       document.getElementById('shareFileName').innerText = currentShare.filename || 'Project_Final.pdf';
       document.getElementById('shareFileSize').innerText = currentShare.fileSize || '2.4 MB';
       document.getElementById('senderName').innerText = currentShare.ownerName || 'Security Lead';
       document.getElementById('senderEmail').innerText = currentShare.ownerEmail || 'lead@cyberundo.io';
+      document.getElementById('recipientEmail').innerText = currentShare.recipientEmail || 'alex.morgan@partnercorp.io';
 
       const revocationAlert = document.getElementById('revocationAlert');
       const fileShareCard = document.getElementById('fileShareCard');
@@ -326,20 +359,40 @@
         btnView.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-white font-mono font-bold text-xs border border-slate-700 hover:border-slate-600 transition flex items-center justify-center gap-2 shadow-md cursor-pointer';
         btnView.innerHTML = `<i data-lucide="eye" class="w-4 h-4 text-cyan-400"></i> VIEW PROTECTED FILE`;
 
-        btnDownload.disabled = false;
-        btnDownload.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-mono font-bold text-xs shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition flex items-center justify-center gap-2 cursor-pointer';
-        btnDownload.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> <span>DOWNLOAD FILE${currentShare.downloadCount > 0 ? ` (${currentShare.downloadCount}x)` : ''}</span>`;
+        if (currentShare.allow_download === false) {
+          btnDownload.disabled = true;
+          btnDownload.className = 'w-full py-3.5 px-4 rounded-xl bg-slate-900 text-slate-500 font-mono font-bold text-xs border border-slate-800 cursor-not-allowed';
+          btnDownload.innerHTML = `<i data-lucide="lock" class="w-4 h-4 text-slate-600"></i> <span>DOWNLOAD DISABLED BY POLICY</span>`;
+        } else {
+          btnDownload.disabled = false;
+          btnDownload.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] text-white font-mono font-bold text-xs shadow-lg shadow-cyan-600/25 border border-cyan-400/30 transition flex items-center justify-center gap-2 cursor-pointer';
+          btnDownload.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> <span>DOWNLOAD FILE${currentShare.downloadCount > 0 ? ` (${currentShare.downloadCount}x)` : ''}</span>`;
+        }
       }
 
       lucide.createIcons();
     }
 
-    function handleRecipientView() {
+    async function handleRecipientView() {
       if (!currentShare || currentShare.status === 'REVOKED') return;
 
       currentShare.viewed = true;
       currentShare.viewedAt = new Date().toISOString();
       saveShareData();
+
+      // Record VIEWED event on server
+      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+        try {
+          await apiService.recordShareView(shareId);
+        } catch(err) {
+          if (err.status === 403) {
+            currentShare.status = 'REVOKED';
+            saveShareData();
+            updateUI();
+            return;
+          }
+        }
+      }
 
       const modal = document.getElementById('previewModal');
       document.getElementById('previewDocTitle').innerText = currentShare.filename || 'Document Preview';
@@ -359,8 +412,12 @@
       }
     }
 
-    function handleRecipientDownload() {
+    async function handleRecipientDownload() {
       if (!currentShare || currentShare.status === 'REVOKED') return;
+      if (currentShare.allow_download === false) {
+        alert("Downloading has been restricted for this view-only share link.");
+        return;
+      }
 
       currentShare.downloadCount = (currentShare.downloadCount || 0) + 1;
       currentShare.lastDownloadAt = new Date().toISOString();
@@ -368,8 +425,24 @@
 
       if (window.soundEngine) soundEngine.play('success');
 
-      // Trigger dummy download file creation
-      const dummyContent = `%PDF-1.4\nCyberUndo Encrypted Specimen: ${currentShare.filename}\nAuthorized Recipient: Person A (alex.morgan@partnercorp.io)\nOwner: ${currentShare.ownerName || 'Security Lead'}\nDownloaded at: ${new Date().toISOString()}`;
+      // Download from server if available
+      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+        try {
+          await apiService.downloadSharedFile(shareId, currentShare.filename);
+          updateUI();
+          return;
+        } catch(err) {
+          if (err.status === 403) {
+            currentShare.status = 'REVOKED';
+            saveShareData();
+            updateUI();
+            return;
+          }
+        }
+      }
+
+      // Fallback synthetic download
+      const dummyContent = `%PDF-1.4\nCyberUndo Encrypted Specimen: ${currentShare.filename}\nAuthorized Recipient: ${currentShare.recipientEmail || 'alex.morgan@partnercorp.io'}\nOwner: ${currentShare.ownerName || 'Security Lead'}\nDownloaded at: ${new Date().toISOString()}`;
       const blob = new Blob([dummyContent], { type: 'application/pdf' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -377,6 +450,7 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
+      updateUI();
 
       updateUI();
     }

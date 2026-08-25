@@ -21,27 +21,10 @@ def create_app(config_class=Config):
     # Ensure local upload directory exists
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-    # Register Member 1 core blueprints
+    # Register Blueprints
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(file_bp, url_prefix="/api")
-
-    # =========================================================================
-    # INTEGRATION HOOKS FOR TEAM MEMBERS
-    # =========================================================================
-    # Member 2 (Secure Sharing + Revoke) can register here:
-    # try:
-    #     from routes.share_routes import share_bp
-    #     app.register_blueprint(share_bp, url_prefix="/api")
-    # except ImportError:
-    #     pass
-    #
-    # Member 4 (Blast Radius + Risk Engine + Activity Tracking) can register here:
-    # try:
-    #     from routes.risk_routes import risk_bp
-    #     app.register_blueprint(risk_bp, url_prefix="/api")
-    # except ImportError:
-    #     pass
-    # =========================================================================
+    app.register_blueprint(share_bp, url_prefix="/api")
 
     # System Health Check Endpoint
     @app.route("/api/health", methods=["GET"])

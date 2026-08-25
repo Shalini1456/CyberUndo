@@ -56,34 +56,69 @@ class File(db.Model):
 
 class SharedAccess(db.Model):
     """
-    Foundation table for Member 2 (Secure Sharing + Revoke).
-    Stores access tokens, recipient rules, permission levels, and revocation timestamps.
+    Table for Member 2 (Secure Sharing + Revoke).
+    Stores access tokens, recipient rules, permission levels, download flags,
+    and revocation / expiration / telemetry timestamps.
     """
     __tablename__ = "shared_access"
 
     id = db.Column(db.Integer, primary_key=True)
     file_id = db.Column(db.Integer, db.ForeignKey("files.id"), nullable=False, index=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True) # None if shared via public token
+    owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True) # Optional if registered user
+    recipient_email = db.Column(db.String(120), nullable=True)                     # Recipient email target
     share_token = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    permission = db.Column(db.String(50), default="view", nullable=False)          # e.g., 'view', 'download'
+    permission = db.Column(db.String(50), default="view", nullable=False)          # 'view', 'download'
+    allow_download = db.Column(db.Boolean, default=True, nullable=False)           # Allow download flag
+    expiry_option = db.Column(db.String(20), default="never", nullable=False)      # '1h', '24h', '7d', 'never'
     status = db.Column(db.String(50), default="active", nullable=False)            # 'active', 'revoked', 'expired'
+    view_count = db.Column(db.Integer, default=0, nullable=False)
+    download_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=True)
     revoked_at = db.Column(db.DateTime, nullable=True)
+    first_viewed_at = db.Column(db.DateTime, nullable=True)
+    last_download_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    owner_user = db.relationship("User", foreign_keys=[owner_id], backref="created_shares", lazy=True)
+
+    def is_expired(self):
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return True
+        return False
+
+    def is_accessible(self):
+        if self.status == "revoked":
+            return False
+        if self.is_expired():
+            return False
+        return self.status == "active"
 
     def to_dict(self):
+        # Dynamically check expiry on representation
+        effective_status = "expired" if (self.status == "active" and self.is_expired()) else self.status
         return {
             "id": self.id,
             "file_id": self.file_id,
             "owner_id": self.owner_id,
+            "owner_name": self.owner_user.name if self.owner_user else (self.file.owner.name if self.file and self.file.owner else None),
+            "owner_email": self.owner_user.email if self.owner_user else (self.file.owner.email if self.file and self.file.owner else None),
             "recipient_id": self.recipient_id,
+            "recipient_email": self.recipient_email,
             "share_token": self.share_token,
             "permission": self.permission,
-            "status": self.status,
+            "allow_download": self.allow_download,
+            "expiry_option": self.expiry_option,
+            "status": effective_status,
+            "view_count": self.view_count,
+            "download_count": self.download_count,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
-            "revoked_at": self.revoked_at.isoformat() if self.revoked_at else None
+            "revoked_at": self.revoked_at.isoformat() if self.revoked_at else None,
+            "first_viewed_at": self.first_viewed_at.isoformat() if self.first_viewed_at else None,
+            "last_download_at": self.last_download_at.isoformat() if self.last_download_at else None,
+            "file": self.file.to_dict() if self.file else None
         }
 
 
