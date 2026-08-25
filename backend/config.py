@@ -28,12 +28,8 @@ class Config:
         "doc", "docx", "xls", "xlsx", "csv", "zip", "json"
     }
 
-    # Multi-Provider Transactional Email Configuration (Brevo > SMTP > Resend)
+    # Transactional Email REST API Configuration (Brevo > Resend)
     BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
-    SMTP_USER = os.environ.get("SMTP_USER", "").strip()
-    SMTP_PASS = (os.environ.get("SMTP_PASS") or os.environ.get("SMTP_PASSWORD") or "").strip()
-    SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
-    SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
     EMAIL_FROM = os.environ.get("EMAIL_FROM") or os.environ.get("FROM_EMAIL") or "CyberUndo Security <onboarding@resend.dev>"
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://cyber-undo.vercel.app")

@@ -277,18 +277,15 @@ def _send_via_resend(api_key: str, from_email: str, recipient_email: str, subjec
 
 def send_share_email(recipient_email: str, owner_name: str, filename: str, share_url: str, expires_at: str = None, allow_download: bool = True) -> dict:
     """
-    Multi-Provider Transactional Email Dispatcher for CyberUndo.
+    Transactional Email Dispatcher for CyberUndo (HTTPS REST APIs - Render Compatible).
     
     Priority Order:
-    1. SMTP / Gmail (SMTP_USER + SMTP_PASS) - Preferred: Free arbitrary recipient delivery with zero domain cost
-    2. Brevo REST API (BREVO_API_KEY) - Free arbitrary recipient delivery without paid domain
-    3. Resend REST API (RESEND_API_KEY) - Fallback provider
+    1. Brevo REST API (BREVO_API_KEY) - Preferred Production: HTTPS port 443, sends to arbitrary recipients with zero domain cost
+    2. Resend REST API (RESEND_API_KEY) - Fallback provider (HTTPS port 443)
     
     Returns dict:
     - {"success": True/False, "message": "...", "provider": "...", "id": "...", "error": "..."}
     """
-    smtp_user = current_app.config.get("SMTP_USER", "").strip()
-    smtp_pass = current_app.config.get("SMTP_PASS", "").strip()
     brevo_api_key = current_app.config.get("BREVO_API_KEY", "").strip()
     resend_api_key = current_app.config.get("RESEND_API_KEY", "").strip()
 
@@ -296,27 +293,20 @@ def send_share_email(recipient_email: str, owner_name: str, filename: str, share
     subject = f"Protected File Shared: {filename} from {owner_name}"
     html_content = _build_html_template(owner_name, filename, share_url, expires_at, allow_download)
 
-    # 1. Preferred Production: SMTP / Gmail
-    if smtp_user and smtp_pass:
-        smtp_host = current_app.config.get("SMTP_HOST", "smtp.gmail.com")
-        smtp_port = current_app.config.get("SMTP_PORT", 587)
-        logger.info(f"[Email Service] Dispatching via SMTP ({smtp_host}) to {recipient_email}")
-        return _send_via_smtp(smtp_user, smtp_pass, smtp_host, smtp_port, from_email, recipient_email, subject, html_content)
-
-    # 2. Priority 2: Brevo REST API (if configured)
+    # 1. Preferred Production: Brevo REST API (HTTPS port 443)
     if brevo_api_key:
         logger.info(f"[Email Service] Dispatching via Brevo to {recipient_email}")
         return _send_via_brevo(brevo_api_key, from_email, recipient_email, subject, html_content)
 
-    # 3. Priority 3 / Fallback: Resend REST API (if configured)
+    # 2. Fallback: Resend REST API (HTTPS port 443)
     if resend_api_key:
         logger.info(f"[Email Service] Dispatching via Resend to {recipient_email}")
         return _send_via_resend(resend_api_key, from_email, recipient_email, subject, html_content)
 
-    # 4. No email provider credentials configured
-    logger.error("[Email Service] No email provider configured (SMTP_USER/PASS, BREVO_API_KEY, or RESEND_API_KEY).")
+    # 3. No REST email provider configured
+    logger.error("[Email Service] No REST email provider configured (BREVO_API_KEY or RESEND_API_KEY).")
     return {
         "success": False,
-        "error": "Email delivery failed: No email provider configured on server. Please configure SMTP_USER + SMTP_PASS, BREVO_API_KEY, or RESEND_API_KEY in Render environment variables.",
+        "error": "Email delivery failed: No REST email provider configured on server. Please configure BREVO_API_KEY or RESEND_API_KEY in Render environment variables.",
         "code": 500
     }

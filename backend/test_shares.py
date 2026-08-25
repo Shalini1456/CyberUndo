@@ -155,8 +155,6 @@ class TestSecureSharingRevoke(unittest.TestCase):
 
     def test_02b_missing_all_providers_reports_failure(self):
         self.app.config["BREVO_API_KEY"] = ""
-        self.app.config["SMTP_USER"] = ""
-        self.app.config["SMTP_PASS"] = ""
         self.app.config["RESEND_API_KEY"] = ""
         res = self.client.post("/api/shares", headers=self.auth_headers, json={
             "file_id": self.file.id,
@@ -166,7 +164,7 @@ class TestSecureSharingRevoke(unittest.TestCase):
         self.assertEqual(res.status_code, 502)
         data = res.get_json()
         self.assertFalse(data["success"])
-        self.assertIn("No email provider configured", data["message"])
+        self.assertIn("No REST email provider configured", data["message"])
         self.app.config["RESEND_API_KEY"] = "re_test_dummy_key_123"
 
     @patch("email_service._send_via_brevo")
@@ -186,13 +184,11 @@ class TestSecureSharingRevoke(unittest.TestCase):
         mock_brevo.assert_called_once()
         self.app.config["BREVO_API_KEY"] = ""
 
-    @patch("email_service._send_via_smtp")
-    def test_02d_smtp_priority_dispatch(self, mock_smtp):
+    @patch("email_service._send_via_resend")
+    def test_02d_resend_fallback_dispatch(self, mock_resend):
         self.app.config["BREVO_API_KEY"] = ""
-        self.app.config["SMTP_USER"] = "cyberundo@gmail.com"
-        self.app.config["SMTP_PASS"] = "app-password-123"
         self.app.config["RESEND_API_KEY"] = "re_test_456"
-        mock_smtp.return_value = {"success": True, "provider": "SMTP", "id": "smtp_msg_1"}
+        mock_resend.return_value = {"success": True, "provider": "Resend", "id": "resend_msg_1"}
 
         res = self.client.post("/api/shares", headers=self.auth_headers, json={
             "file_id": self.file.id,
@@ -202,9 +198,7 @@ class TestSecureSharingRevoke(unittest.TestCase):
         self.assertEqual(res.status_code, 201)
         data = res.get_json()
         self.assertTrue(data["success"])
-        mock_smtp.assert_called_once()
-        self.app.config["SMTP_USER"] = ""
-        self.app.config["SMTP_PASS"] = ""
+        mock_resend.assert_called_once()
 
     # -------------------------------------------------------------------------
     # 3. OPEN SHARE LINK (PUBLIC TOKEN GET)
