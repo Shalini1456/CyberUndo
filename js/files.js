@@ -111,9 +111,11 @@ class FilesManager {
         this.files = res.data.files;
         this.renderFilesList();
 
-        // If no file currently selected, select the latest uploaded file
-        if (!this.selectedFile && this.files.length > 0) {
+        // If user has files, select the latest uploaded file; otherwise clear selection
+        if (this.files.length > 0) {
           this.selectFile(this.files[0]);
+        } else {
+          this.selectFile(null);
         }
       }
     } catch (err) {
@@ -128,15 +130,18 @@ class FilesManager {
     this.files = [];
     this.selectedFile = null;
     this.renderFilesList();
+    if (window.killSwitchManager) {
+      window.killSwitchManager.setFile(null);
+    }
   }
 
   selectFile(file) {
-    this.selectedFile = file;
+    this.selectedFile = file || null;
     this.renderFilesList(); // Re-render to update active highlight
 
     // Update the Killswitch / Share section with the selected real file
     if (window.killSwitchManager) {
-      window.killSwitchManager.setFile(file);
+      window.killSwitchManager.setFile(this.selectedFile);
     }
   }
 

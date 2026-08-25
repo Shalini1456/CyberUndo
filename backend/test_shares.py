@@ -153,7 +153,10 @@ class TestSecureSharingRevoke(unittest.TestCase):
         shares = SharedAccess.query.filter_by(file_id=self.file.id).all()
         self.assertEqual(len(shares), 0)
 
-    def test_02b_missing_api_key_reports_failure(self):
+    def test_02b_missing_all_providers_reports_failure(self):
+        self.app.config["BREVO_API_KEY"] = ""
+        self.app.config["SMTP_USER"] = ""
+        self.app.config["SMTP_PASS"] = ""
         self.app.config["RESEND_API_KEY"] = ""
         res = self.client.post("/api/shares", headers=self.auth_headers, json={
             "file_id": self.file.id,
@@ -163,8 +166,45 @@ class TestSecureSharingRevoke(unittest.TestCase):
         self.assertEqual(res.status_code, 502)
         data = res.get_json()
         self.assertFalse(data["success"])
-        self.assertIn("RESEND_API_KEY is not configured", data["message"])
+        self.assertIn("No email provider configured", data["message"])
         self.app.config["RESEND_API_KEY"] = "re_test_dummy_key_123"
+
+    @patch("email_service._send_via_brevo")
+    def test_02c_brevo_priority_dispatch(self, mock_brevo):
+        self.app.config["BREVO_API_KEY"] = "xkeysib-test-123"
+        self.app.config["RESEND_API_KEY"] = "re_test_456"
+        mock_brevo.return_value = {"success": True, "provider": "Brevo", "id": "brevo_msg_1"}
+
+        res = self.client.post("/api/shares", headers=self.auth_headers, json={
+            "file_id": self.file.id,
+            "recipient_email": "recipient@any-client.com",
+            "expiry": "24h"
+        })
+        self.assertEqual(res.status_code, 201)
+        data = res.get_json()
+        self.assertTrue(data["success"])
+        mock_brevo.assert_called_once()
+        self.app.config["BREVO_API_KEY"] = ""
+
+    @patch("email_service._send_via_smtp")
+    def test_02d_smtp_priority_dispatch(self, mock_smtp):
+        self.app.config["BREVO_API_KEY"] = ""
+        self.app.config["SMTP_USER"] = "cyberundo@gmail.com"
+        self.app.config["SMTP_PASS"] = "app-password-123"
+        self.app.config["RESEND_API_KEY"] = "re_test_456"
+        mock_smtp.return_value = {"success": True, "provider": "SMTP", "id": "smtp_msg_1"}
+
+        res = self.client.post("/api/shares", headers=self.auth_headers, json={
+            "file_id": self.file.id,
+            "recipient_email": "recipient@any-client.com",
+            "expiry": "24h"
+        })
+        self.assertEqual(res.status_code, 201)
+        data = res.get_json()
+        self.assertTrue(data["success"])
+        mock_smtp.assert_called_once()
+        self.app.config["SMTP_USER"] = ""
+        self.app.config["SMTP_PASS"] = ""
 
     # -------------------------------------------------------------------------
     # 3. OPEN SHARE LINK (PUBLIC TOKEN GET)

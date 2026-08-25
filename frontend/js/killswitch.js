@@ -12,12 +12,7 @@ class KillSwitchManager {
     this.currentState = STATE.IDLE;
     this.currentShareId = null;
     this.viewRecorded = false;
-    this.activeFile = {
-      id: 0,
-      filename: "Project_Final.pdf",
-      status: "active",
-      created_at: new Date().toISOString()
-    };
+    this.activeFile = null;
     this.propagationTimer1 = null;
     this.propagationTimer2 = null;
     this.propagationTimer3 = null;
@@ -32,8 +27,7 @@ class KillSwitchManager {
   }
 
   setFile(file) {
-    if (!file) return;
-    this.activeFile = file;
+    this.activeFile = file || null;
     this.reset(false);
     this.updateFileDisplay();
   }
@@ -42,13 +36,32 @@ class KillSwitchManager {
     const filenameEl = document.getElementById("activeFileName");
     const filesizeEl = document.getElementById("activeFileSize");
     const shareBtnText = document.getElementById("btnShareText");
+    const fileBadgeState = document.getElementById("fileBadgeState");
 
-    if (filenameEl) filenameEl.innerText = this.activeFile.filename;
-    if (filesizeEl) {
-      filesizeEl.innerText = `Vault ID: #${this.activeFile.id || 'DEMO'} • Encrypted AES-256`;
-    }
-    if (shareBtnText && this.currentState === STATE.IDLE) {
-      shareBtnText.innerText = `SHARE FILE SECURELY`;
+    if (this.activeFile && this.activeFile.id) {
+      if (filenameEl) filenameEl.innerText = this.activeFile.filename;
+      if (filesizeEl) {
+        filesizeEl.innerText = `Vault ID: #${this.activeFile.id} • Encrypted AES-256`;
+      }
+      if (shareBtnText && this.currentState === STATE.IDLE) {
+        shareBtnText.innerText = `SHARE FILE SECURELY`;
+      }
+      if (fileBadgeState && this.currentState === STATE.IDLE) {
+        fileBadgeState.innerText = 'Ready to Share';
+        fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-800 text-slate-400 border border-slate-700';
+      }
+    } else {
+      if (filenameEl) filenameEl.innerText = "No File Selected";
+      if (filesizeEl) {
+        filesizeEl.innerText = "Upload or select a file from your Secure Vault to begin";
+      }
+      if (shareBtnText && this.currentState === STATE.IDLE) {
+        shareBtnText.innerText = `SELECT FILE FROM VAULT`;
+      }
+      if (fileBadgeState && this.currentState === STATE.IDLE) {
+        fileBadgeState.innerText = 'No File Selected';
+        fileBadgeState.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-slate-900 text-slate-500 border border-slate-800';
+      }
     }
   }
 

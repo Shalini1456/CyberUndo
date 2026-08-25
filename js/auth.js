@@ -78,6 +78,10 @@ class AuthManager {
     if (window.filesManager) {
       window.filesManager.clearFiles();
     }
+    if (window.killSwitchManager) {
+      window.killSwitchManager.setFile(null);
+      window.killSwitchManager.reset(false);
+    }
     if (showToast) {
       window.toast && window.toast.info("Logged out successfully.");
     }
