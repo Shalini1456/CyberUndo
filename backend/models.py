@@ -124,7 +124,7 @@ class SharedAccess(db.Model):
 
 class ActivityLog(db.Model):
     """
-    Foundation table for Member 4 (Blast Radius + Risk Engine + Activity Tracking).
+    ActivityLog table supporting Member 4 Risk Engine, Blast Radius, and Activity Tracking.
     Stores audit trails for file actions, user sessions, and security telemetry.
     """
     __tablename__ = "activity_logs"
@@ -132,18 +132,28 @@ class ActivityLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     file_id = db.Column(db.Integer, db.ForeignKey("files.id"), nullable=True, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
-    action = db.Column(db.String(100), nullable=False)                            # e.g., 'UPLOAD', 'SHARE', 'ACCESS', 'REVOKE'
+    file_name = db.Column(db.String(255), nullable=True)
+    actor = db.Column(db.String(120), nullable=True)
+    event_type = db.Column(db.String(50), nullable=True, index=True)              # e.g., 'FILE_SHARED', 'FILE_VIEWED', 'FILE_DOWNLOADED', 'ACCESS_REVOKED'
+    action = db.Column(db.String(100), nullable=False)                            # e.g., 'UPLOAD', 'SHARE', 'VIEW', 'DOWNLOAD', 'REVOKE'
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     ip_address = db.Column(db.String(45), nullable=True)
+    details = db.Column(db.Text, nullable=True)
     metadata_json = db.Column("metadata", db.Text, nullable=True)                 # JSON string containing telemetry context
 
     def to_dict(self):
         return {
             "id": self.id,
+            "activity_id": self.id,
             "file_id": self.file_id,
             "user_id": self.user_id,
+            "file_name": self.file_name or (self.file.filename if self.file else None),
+            "actor": self.actor or (f"User #{self.user_id}" if self.user_id else (self.ip_address or "anonymous")),
+            "event_type": self.event_type or self.action,
             "action": self.action,
+            "details": self.details or self.metadata_json,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "ip_address": self.ip_address,
             "metadata": self.metadata_json
         }
+

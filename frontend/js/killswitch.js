@@ -30,6 +30,38 @@ class KillSwitchManager {
     this.activeFile = file || null;
     this.reset(false);
     this.updateFileDisplay();
+    if (this.activeFile && this.activeFile.id) {
+      this.updateDynamicRiskAnalysis();
+    }
+  }
+
+  async updateDynamicRiskAnalysis() {
+    if (!this.activeFile || !this.activeFile.id || !window.apiService) return;
+    try {
+      const expiry = document.getElementById("shareExpiry") ? document.getElementById("shareExpiry").value : "24h";
+      const allowDownload = document.getElementById("shareAllowDownload") ? document.getElementById("shareAllowDownload").checked : true;
+      const res = await apiService.analyzeBlastRadius({
+        file_id: String(this.activeFile.id),
+        file_name: this.activeFile.filename,
+        sensitivity: "Confidential",
+        recipient_count: 1,
+        download_allowed: allowDownload,
+        expiry: expiry
+      });
+      if (res && res.exposure_chain) {
+        const formula = document.getElementById('propagationFormula');
+        if (formula && this.currentState === STATE.IDLE) {
+          formula.innerText = res.exposure_chain.join(" → ");
+        }
+        const blastSummary = document.getElementById('blastRadiusSummary');
+        if (blastSummary && this.currentState === STATE.IDLE) {
+          blastSummary.innerText = `Risk: ${res.risk_level} • Exposure: ${res.estimated_exposure}`;
+          blastSummary.className = res.risk_level === 'CRITICAL' ? 'text-red-400 font-mono font-bold' : (res.risk_level === 'HIGH' ? 'text-amber-400 font-mono font-bold' : 'text-cyan-400 font-mono');
+        }
+      }
+    } catch (e) {
+      console.warn("Dynamic risk calculation non-fatal notice:", e);
+    }
   }
 
   updateFileDisplay() {

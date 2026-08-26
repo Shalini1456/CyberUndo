@@ -80,6 +80,27 @@ def upload_file(current_user):
         db.session.add(new_file)
         db.session.commit()
 
+        # Log Activity event
+        try:
+            upload_log = ActivityLog(
+                file_id=new_file.id,
+                user_id=current_user.id,
+                file_name=original_filename,
+                actor=current_user.email,
+                event_type="FILE_UPLOADED",
+                action="UPLOAD",
+                ip_address=request.remote_addr,
+                details=f"File {original_filename} uploaded to vault by {current_user.name}",
+                metadata_json=json.dumps({
+                    "filename": original_filename,
+                    "file_size": os.path.getsize(full_file_path) if os.path.exists(full_file_path) else 0
+                })
+            )
+            db.session.add(upload_log)
+            db.session.commit()
+        except Exception:
+            pass
+
         return jsonify({
             "success": True,
             "message": "File uploaded and registered successfully.",

@@ -130,7 +130,11 @@ def create_share(current_user, file_id=None):
         log_entry = ActivityLog(
             file_id=file_record.id,
             user_id=current_user.id,
+            file_name=file_record.filename,
+            actor=current_user.email,
+            event_type="FILE_SHARED",
             action="SHARE",
+            details=f"File {file_record.filename} shared with {recipient_email or 'direct link'}",
             ip_address=request.remote_addr,
             metadata_json=json.dumps({
                 "share_token": share_token,
@@ -267,7 +271,11 @@ def record_view(token):
         log_entry = ActivityLog(
             file_id=share.file_id,
             user_id=None,
+            file_name=share.file.filename if share.file else None,
+            actor=share.recipient_email or request.remote_addr,
+            event_type="FILE_VIEWED",
             action="VIEW",
+            details=f"Viewed by {share.recipient_email or request.remote_addr}",
             ip_address=request.remote_addr,
             metadata_json=json.dumps({
                 "share_token": token,
@@ -365,7 +373,11 @@ def download_shared_file(token):
         log_entry = ActivityLog(
             file_id=share.file_id,
             user_id=None,
+            file_name=file_record.filename,
+            actor=share.recipient_email or request.remote_addr,
+            event_type="FILE_DOWNLOADED",
             action="DOWNLOAD",
+            details=f"Downloaded by {share.recipient_email or request.remote_addr}",
             ip_address=request.remote_addr,
             metadata_json=json.dumps({
                 "share_token": token,
@@ -420,7 +432,11 @@ def revoke_share(current_user, token_or_id):
         log_entry = ActivityLog(
             file_id=share.file_id,
             user_id=current_user.id,
+            file_name=share.file.filename if share.file else None,
+            actor=current_user.email,
+            event_type="ACCESS_REVOKED",
             action="REVOKE",
+            details=f"Access revoked for share token {share.share_token}",
             ip_address=request.remote_addr,
             metadata_json=json.dumps({
                 "share_token": share.share_token,
@@ -481,7 +497,11 @@ def revoke_all_shares(current_user, file_id=None):
             log_entry = ActivityLog(
                 file_id=s.file_id,
                 user_id=current_user.id,
+                file_name=s.file.filename if s.file else None,
+                actor=current_user.email,
+                event_type="ACCESS_REVOKED",
                 action="REVOKE_ALL",
+                details=f"Batch revocation of share token {s.share_token}",
                 ip_address=request.remote_addr,
                 metadata_json=json.dumps({
                     "share_token": s.share_token,

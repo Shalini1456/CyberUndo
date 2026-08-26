@@ -3,7 +3,7 @@ from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
 from database import db, init_db
-from routes import auth_bp, file_bp, share_bp
+from routes import auth_bp, file_bp, share_bp, analytics_bp
 
 # Resolve frontend assets directory path (supports repo root or frontend subdirectory)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -33,6 +33,8 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(file_bp, url_prefix="/api")
     app.register_blueprint(share_bp, url_prefix="/api")
+    app.register_blueprint(analytics_bp)  # Handles /api/risk/analyze, /api/blast-radius/analyze, /api/activity/*
+
 
     # System Health Check Endpoint
     @app.route("/api/health", methods=["GET"])

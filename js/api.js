@@ -215,6 +215,34 @@ class ApiService {
       body: JSON.stringify(fileId ? { file_id: fileId } : {})
     });
   }
+
+  // ==========================================
+  // 5. MEMBER 4: RISK ENGINE & BLAST RADIUS
+  // ==========================================
+  async analyzeRisk(payload) {
+    return this.request("/risk/analyze", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async analyzeBlastRadius(payload) {
+    return this.request("/blast-radius/analyze", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async logActivity(payload) {
+    return this.request("/activity/log", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getFileActivity(fileId) {
+    return this.request(`/activity/${fileId}`, { method: "GET" });
+  }
 }
 
 window.apiService = new ApiService();
