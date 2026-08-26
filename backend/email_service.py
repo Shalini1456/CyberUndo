@@ -286,10 +286,30 @@ def send_share_email(recipient_email: str, owner_name: str, filename: str, share
     Returns dict:
     - {"success": True/False, "message": "...", "provider": "...", "id": "...", "error": "..."}
     """
-    brevo_api_key = current_app.config.get("BREVO_API_KEY", "").strip()
-    resend_api_key = current_app.config.get("RESEND_API_KEY", "").strip()
+    # Check environment variables directly to ensure runtime changes on Render are immediately picked up
+    brevo_api_key = (
+        os.environ.get("BREVO_API_KEY") or 
+        os.environ.get("BREVO_KEY") or 
+        os.environ.get("SENDINBLUE_API_KEY") or 
+        os.environ.get("SIB_API_KEY") or 
+        current_app.config.get("BREVO_API_KEY") or 
+        ""
+    ).strip()
 
-    from_email = current_app.config.get("EMAIL_FROM", "CyberUndo Security <onboarding@resend.dev>").strip()
+    resend_api_key = (
+        os.environ.get("RESEND_API_KEY") or 
+        current_app.config.get("RESEND_API_KEY") or 
+        ""
+    ).strip()
+
+    from_email = (
+        os.environ.get("EMAIL_FROM") or 
+        os.environ.get("FROM_EMAIL") or 
+        os.environ.get("BREVO_SENDER") or 
+        current_app.config.get("EMAIL_FROM") or 
+        "CyberUndo Security <onboarding@resend.dev>"
+    ).strip()
+
     subject = f"Protected File Shared: {filename} from {owner_name}"
     html_content = _build_html_template(owner_name, filename, share_url, expires_at, allow_download)
 

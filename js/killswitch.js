@@ -7,6 +7,21 @@ const STATE = {
   REVOKED: 'REVOKED'
 };
 
+function safeSetClass(el, classStr) {
+  if (!el) return;
+  try {
+    if (typeof el.setAttribute === 'function') {
+      el.setAttribute('class', classStr);
+    } else {
+      el.className = classStr;
+    }
+  } catch (err) {
+    try {
+      el.className = classStr;
+    } catch (e) {}
+  }
+}
+
 class KillSwitchManager {
   constructor() {
     this.currentState = STATE.IDLE;
@@ -462,9 +477,9 @@ class KillSwitchManager {
       this.addLogEntry(nowTime, `File <b>${filename}</b> shared securely to <b>${recipientEmail}</b>`, 'shared');
 
       const connectorLine1 = document.getElementById('connectorLine1');
-      if (connectorLine1) connectorLine1.className = 'h-0.5 w-full bg-cyan-500 laser-line-active';
+      if (connectorLine1) safeSetClass(connectorLine1, 'h-0.5 w-full bg-cyan-500 laser-line-active');
       const connectorArrow1 = document.getElementById('connectorArrow1');
-      if (connectorArrow1) connectorArrow1.className = 'w-4 h-4 text-cyan-400 absolute';
+      if (connectorArrow1) safeSetClass(connectorArrow1, 'w-4 h-4 text-cyan-400 absolute');
       
       const activityLive = document.getElementById('activityLiveIndicator');
       if (activityLive) {
@@ -535,8 +550,8 @@ class KillSwitchManager {
 
     const conn2 = document.getElementById('connectorLine2');
     const arrow2 = document.getElementById('connectorArrow2');
-    if (conn2) conn2.className = 'h-0.5 w-full bg-amber-500 laser-line-active';
-    if (arrow2) arrow2.className = 'w-4 h-4 text-amber-400 absolute';
+    if (conn2) safeSetClass(conn2, 'h-0.5 w-full bg-amber-500 laser-line-active');
+    if (arrow2) safeSetClass(arrow2, 'w-4 h-4 text-amber-400 absolute');
     
     const nodeSubtitle = document.getElementById('downloadsNodeSubtitle');
     if (nodeSubtitle) nodeSubtitle.innerText = `${count} download${count === 1 ? '' : 's'}`;
@@ -654,10 +669,10 @@ class KillSwitchManager {
     const line2 = document.getElementById('connectorLine2');
     const arrow2 = document.getElementById('connectorArrow2');
 
-    if (line1) line1.className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
-    if (arrow1) arrow1.className = 'w-4 h-4 text-slate-700 absolute';
-    if (line2) line2.className = 'h-0.5 w-full bg-slate-700 laser-line-severed';
-    if (arrow2) arrow2.className = 'w-4 h-4 text-slate-700 absolute';
+    if (line1) safeSetClass(line1, 'h-0.5 w-full bg-slate-700 laser-line-severed');
+    if (arrow1) safeSetClass(arrow1, 'w-4 h-4 text-slate-700 absolute');
+    if (line2) safeSetClass(line2, 'h-0.5 w-full bg-slate-700 laser-line-severed');
+    if (arrow2) safeSetClass(arrow2, 'w-4 h-4 text-slate-700 absolute');
 
     // 5. Update Blast Radius & Exposure
     const blastSection = document.getElementById('blastRadiusSection');
@@ -800,26 +815,31 @@ class KillSwitchManager {
     for (let i = 1; i <= 5; i++) {
       const pill = document.getElementById(`stepPill${i}`);
       if (!pill) continue;
+      const numSpan = pill.querySelector('span:first-child');
 
       if (i < activeStep) {
-        pill.className = 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-emerald-400 border border-emerald-500/40 transition';
-        pill.querySelector('span:first-child').className = 'w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center font-bold text-[10px] text-emerald-400';
-        pill.querySelector('span:first-child').innerHTML = '✓';
+        safeSetClass(pill, 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-emerald-400 border border-emerald-500/40 transition');
+        if (numSpan) {
+          safeSetClass(numSpan, 'w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center font-bold text-[10px] text-emerald-400');
+          numSpan.innerHTML = '✓';
+        }
       } else if (i === activeStep) {
         if (activeStep === 4) {
-          pill.className = 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950 text-red-300 border border-red-500 animate-pulse transition';
-          pill.querySelector('span:first-child').className = 'w-5 h-5 rounded-full bg-red-500/30 flex items-center justify-center font-bold text-[10px] text-red-300';
+          safeSetClass(pill, 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950 text-red-300 border border-red-500 animate-pulse transition');
+          if (numSpan) safeSetClass(numSpan, 'w-5 h-5 rounded-full bg-red-500/30 flex items-center justify-center font-bold text-[10px] text-red-300');
         } else if (activeStep === 5) {
-          pill.className = 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500 transition';
-          pill.querySelector('span:first-child').className = 'w-5 h-5 rounded-full bg-emerald-500/30 flex items-center justify-center font-bold text-[10px] text-emerald-300';
+          safeSetClass(pill, 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500 transition');
+          if (numSpan) safeSetClass(numSpan, 'w-5 h-5 rounded-full bg-emerald-500/30 flex items-center justify-center font-bold text-[10px] text-emerald-300');
         } else {
-          pill.className = 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition';
-          pill.querySelector('span:first-child').className = 'w-5 h-5 rounded-full bg-cyan-500/30 flex items-center justify-center font-bold text-[10px]';
+          safeSetClass(pill, 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition');
+          if (numSpan) safeSetClass(numSpan, 'w-5 h-5 rounded-full bg-cyan-500/30 flex items-center justify-center font-bold text-[10px]');
         }
       } else {
-        pill.className = 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition';
-        pill.querySelector('span:first-child').className = 'w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]';
-        pill.querySelector('span:first-child').innerHTML = `${i}`;
+        safeSetClass(pill, 'step-pill flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-slate-500 border border-slate-800 transition');
+        if (numSpan) {
+          safeSetClass(numSpan, 'w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center font-bold text-[10px]');
+          numSpan.innerHTML = `${i}`;
+        }
       }
     }
   }
@@ -918,10 +938,10 @@ class KillSwitchManager {
       document.getElementById('blastRadiusSummary').className = 'text-slate-500 font-mono';
     }
 
-    if (document.getElementById('connectorLine1')) document.getElementById('connectorLine1').className = 'h-0.5 w-full bg-slate-800 transition-all duration-500';
-    if (document.getElementById('connectorArrow1')) document.getElementById('connectorArrow1').className = 'w-4 h-4 text-slate-600 absolute transition-colors';
-    if (document.getElementById('connectorLine2')) document.getElementById('connectorLine2').className = 'h-0.5 w-full bg-slate-800 transition-all duration-500';
-    if (document.getElementById('connectorArrow2')) document.getElementById('connectorArrow2').className = 'w-4 h-4 text-slate-600 absolute transition-colors';
+    if (document.getElementById('connectorLine1')) safeSetClass(document.getElementById('connectorLine1'), 'h-0.5 w-full bg-slate-800 transition-all duration-500');
+    if (document.getElementById('connectorArrow1')) safeSetClass(document.getElementById('connectorArrow1'), 'w-4 h-4 text-slate-600 absolute transition-colors');
+    if (document.getElementById('connectorLine2')) safeSetClass(document.getElementById('connectorLine2'), 'h-0.5 w-full bg-slate-800 transition-all duration-500');
+    if (document.getElementById('connectorArrow2')) safeSetClass(document.getElementById('connectorArrow2'), 'w-4 h-4 text-slate-600 absolute transition-colors');
 
     if (document.getElementById('downloadsIconBg')) document.getElementById('downloadsIconBg').className = 'w-9 h-9 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center mb-1.5 border border-slate-700 transition-all';
     if (document.getElementById('downloadsNodeTitle')) document.getElementById('downloadsNodeTitle').className = 'text-xs font-bold text-slate-400 font-mono';
