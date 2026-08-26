@@ -397,9 +397,10 @@ def view_shared_content(token):
             ".txt": "text/plain; charset=utf-8",
             ".json": "application/json",
             ".csv": "text/csv; charset=utf-8",
-            ".md": "text/markdown; charset=utf-8"
+            ".md": "text/markdown; charset=utf-8",
+            ".html": "text/plain; charset=utf-8"
         }
-        mimetype = mime_map.get(ext, file_record.mime_type or "application/octet-stream")
+        mimetype = mime_map.get(ext, getattr(file_record, "mime_type", None) or "application/octet-stream")
 
         response = send_from_directory(
             upload_dir,
