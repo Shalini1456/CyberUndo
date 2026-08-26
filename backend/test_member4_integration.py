@@ -14,19 +14,34 @@ import json
 import unittest
 from unittest.mock import patch
 
-from backend.app import create_app
-from backend.database import db
-from backend.models import User, File, SharedAccess, ActivityLog
-from backend.services.risk_engine import (
-    analyze_risk,
-    get_sensitivity_score,
-    get_recipient_score,
-    get_download_score,
-    get_expiry_score,
-    get_risk_level
-)
-from backend.services.blast_radius import calculate_blast_radius
-from backend.services.activity_service import log_activity, get_file_activity
+try:
+    from app import create_app
+    from database import db
+    from models import User, File, SharedAccess, ActivityLog
+    from services.risk_engine import (
+        analyze_risk,
+        get_sensitivity_score,
+        get_recipient_score,
+        get_download_score,
+        get_expiry_score,
+        get_risk_level
+    )
+    from services.blast_radius import calculate_blast_radius
+    from services.activity_service import log_activity, get_file_activity
+except (ImportError, ModuleNotFoundError):
+    from backend.app import create_app
+    from backend.database import db
+    from backend.models import User, File, SharedAccess, ActivityLog
+    from backend.services.risk_engine import (
+        analyze_risk,
+        get_sensitivity_score,
+        get_recipient_score,
+        get_download_score,
+        get_expiry_score,
+        get_risk_level
+    )
+    from backend.services.blast_radius import calculate_blast_radius
+    from backend.services.activity_service import log_activity, get_file_activity
 
 
 class Member4IntegrationTests(unittest.TestCase):
@@ -195,8 +210,7 @@ class Member4IntegrationTests(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 5. END-TO-END TELEMETRY HOOKING WITH REAL SHARES
     # -------------------------------------------------------------------------
-    @patch("backend.services.activity_service.has_app_context", return_value=True)
-    def test_09_real_share_lifecycle_populates_member4_activity_logs(self, mock_ctx):
+    def test_09_real_share_lifecycle_populates_member4_activity_logs(self):
         with self.app.app_context():
             # Create user & file
             user = User(name="Alice", email="alice@cyberundo.io", password_hash="hash")

@@ -3,20 +3,36 @@ Services package for CyberUndo.
 Exports Risk Engine, Blast Radius Analysis, and Activity Tracking.
 """
 
-from backend.services.risk_engine import (
-    analyze_risk,
-    get_sensitivity_score,
-    get_recipient_score,
-    get_download_score,
-    get_expiry_score,
-    get_risk_level
-)
-from backend.services.blast_radius import calculate_blast_radius
-from backend.services.activity_service import (
-    log_activity,
-    get_file_activity,
-    VALID_EVENT_TYPES
-)
+try:
+    from .risk_engine import (
+        analyze_risk,
+        get_sensitivity_score,
+        get_recipient_score,
+        get_download_score,
+        get_expiry_score,
+        get_risk_level
+    )
+    from .blast_radius import calculate_blast_radius
+    from .activity_service import (
+        log_activity,
+        get_file_activity,
+        VALID_EVENT_TYPES
+    )
+except (ImportError, ModuleNotFoundError):
+    from services.risk_engine import (
+        analyze_risk,
+        get_sensitivity_score,
+        get_recipient_score,
+        get_download_score,
+        get_expiry_score,
+        get_risk_level
+    )
+    from services.blast_radius import calculate_blast_radius
+    from services.activity_service import (
+        log_activity,
+        get_file_activity,
+        VALID_EVENT_TYPES
+    )
 
 __all__ = [
     "analyze_risk",

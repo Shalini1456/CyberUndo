@@ -5,7 +5,13 @@ Calculates the potential exposure chain, forwarding risk, and blast radius summa
 before a file is shared with recipients.
 """
 
-from backend.services.risk_engine import analyze_risk
+try:
+    from services.risk_engine import analyze_risk
+except (ImportError, ModuleNotFoundError):
+    try:
+        from .risk_engine import analyze_risk
+    except (ImportError, ModuleNotFoundError):
+        from backend.services.risk_engine import analyze_risk
 
 
 def calculate_blast_radius(

@@ -8,8 +8,13 @@ integrated with the application's database.
 from datetime import datetime
 import json
 from flask import has_app_context
-from backend.database import db
-from backend.models import ActivityLog, File
+
+try:
+    from database import db
+    from models import ActivityLog, File
+except (ImportError, ModuleNotFoundError):
+    from backend.database import db
+    from backend.models import ActivityLog, File
 
 # Standard permitted event types in the CyberUndo lifecycle
 VALID_EVENT_TYPES = {

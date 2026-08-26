@@ -9,9 +9,15 @@ Exposes REST API endpoints for:
 """
 
 from flask import Blueprint, request, jsonify
-from backend.services.risk_engine import analyze_risk
-from backend.services.blast_radius import calculate_blast_radius
-from backend.services.activity_service import log_activity, get_file_activity
+
+try:
+    from services.risk_engine import analyze_risk
+    from services.blast_radius import calculate_blast_radius
+    from services.activity_service import log_activity, get_file_activity
+except (ImportError, ModuleNotFoundError):
+    from backend.services.risk_engine import analyze_risk
+    from backend.services.blast_radius import calculate_blast_radius
+    from backend.services.activity_service import log_activity, get_file_activity
 
 analytics_bp = Blueprint("analytics", __name__)
 
