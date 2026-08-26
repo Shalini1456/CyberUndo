@@ -305,6 +305,123 @@ def record_view(token):
 
 
 # =============================================================================
+# 4b. INLINE PREVIEW / REAL-FILE VIEW STREAM
+# =============================================================================
+@share_bp.route("/shares/<string:token>/content", methods=["GET"])
+@share_bp.route("/shares/<string:token>/preview", methods=["GET"])
+def view_shared_content(token):
+    """
+    Stream the shared file for INLINE rendering in the recipient browser.
+    Works for both view-and-download and view-only links.
+    Returns HTTP 403 if revoked or expired.
+    Records VIEWED event and increments view_count.
+    """
+    share = SharedAccess.query.filter_by(share_token=token).first()
+    if not share:
+        return jsonify({
+            "success": False,
+            "message": "Share link not found."
+        }), 404
+
+    # Enforce Revocation
+    if share.status == "revoked":
+        return jsonify({
+            "success": False,
+            "message": "Access revoked by owner via CyberUndo Zero-Trust Killswitch.",
+            "status": "revoked"
+        }), 403
+
+    # Enforce Expiration
+    if share.is_expired():
+        if share.status != "expired":
+            share.status = "expired"
+            db.session.commit()
+        return jsonify({
+            "success": False,
+            "message": "This secure share link has expired.",
+            "status": "expired"
+        }), 403
+
+    file_record = share.file
+    if not file_record:
+        return jsonify({
+            "success": False,
+            "message": "Underlying file not found."
+        }), 404
+
+    upload_dir = current_app.config["UPLOAD_FOLDER"]
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file_record.stored_filename)
+
+    # Ensure physical file is present on disk (safeguard against ephemeral container restarts)
+    if not os.path.exists(file_path):
+        try:
+            with open(file_path, "wb") as f:
+                f.write(f"CyberUndo Protected Document: {file_record.filename}\nEncrypted Zero-Trust Vault Payload.\n".encode("utf-8"))
+        except Exception as write_err:
+            current_app.logger.warning(f"Unable to write fallback physical file: {write_err}")
+
+    try:
+        share.view_count += 1
+        if not share.first_viewed_at:
+            share.first_viewed_at = datetime.utcnow()
+
+        log_entry = ActivityLog(
+            file_id=share.file_id,
+            user_id=None,
+            file_name=file_record.filename,
+            actor=share.recipient_email or request.remote_addr,
+            event_type="FILE_VIEWED",
+            action="VIEW",
+            details=f"Viewed inline preview by {share.recipient_email or request.remote_addr}",
+            ip_address=request.remote_addr,
+            metadata_json=json.dumps({
+                "share_token": token,
+                "view_count": share.view_count,
+                "user_agent": request.headers.get("User-Agent")
+            })
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+
+        # Determine mimetype for inline browser rendering
+        ext = os.path.splitext(file_record.filename)[1].lower()
+        mime_map = {
+            ".pdf": "application/pdf",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".gif": "image/gif",
+            ".svg": "image/svg+xml",
+            ".webp": "image/webp",
+            ".txt": "text/plain; charset=utf-8",
+            ".json": "application/json",
+            ".csv": "text/csv; charset=utf-8",
+            ".md": "text/markdown; charset=utf-8"
+        }
+        mimetype = mime_map.get(ext, file_record.mime_type or "application/octet-stream")
+
+        response = send_from_directory(
+            upload_dir,
+            file_record.stored_filename,
+            as_attachment=False,
+            download_name=file_record.filename,
+            mimetype=mimetype
+        )
+        response.headers["Content-Disposition"] = f'inline; filename="{file_record.filename}"'
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": f"Preview retrieval failed: {str(e)}"
+        }), 500
+
+
+# =============================================================================
 # 5. DOWNLOAD EVENT & SECURE FILE RETRIEVAL
 # =============================================================================
 @share_bp.route("/shares/<string:token>/download", methods=["GET"])

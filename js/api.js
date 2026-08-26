@@ -181,6 +181,13 @@ class ApiService {
     return this.request(`/shares/${token}/view`, { method: "POST" });
   }
 
+  async getSharedFileBlob(token) {
+    return this.request(`/shares/${token}/content`, {
+      method: "GET",
+      isBlob: true
+    });
+  }
+
   async downloadSharedFile(token, filename) {
     const blob = await this.request(`/shares/${token}/download`, {
       method: "GET",

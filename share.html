@@ -163,35 +163,48 @@
 
   </main>
 
-  <!-- MODAL: DOCUMENT PREVIEW (WHEN VIEW IS CLICKED) -->
-  <div id="previewModal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-4">
-    <div class="glass-card rounded-2xl w-full max-w-lg p-6 border border-slate-700 shadow-2xl modal-animate-in space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2 font-mono text-xs font-bold text-white">
-          <i data-lucide="file-check" class="w-4 h-4 text-cyan-400"></i>
-          <span id="previewDocTitle">Document Preview</span>
+  <!-- MODAL: REAL DOCUMENT PREVIEW (WHEN VIEW IS CLICKED) -->
+  <div id="previewModal" class="hidden fixed inset-0 z-50 modal-backdrop items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="glass-card rounded-2xl w-full max-w-5xl h-[88vh] border border-slate-700/80 shadow-2xl modal-animate-in flex flex-col overflow-hidden bg-slate-900/95">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 px-5 py-3.5 bg-slate-950/90 flex-shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-check" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="previewDocTitle" class="font-mono text-xs sm:text-sm font-bold text-white truncate">Document Preview</h3>
+            <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+              <span id="previewSessionCode" class="text-cyan-400 font-semibold">#SESSION-9921</span>
+              <span>•</span>
+              <span class="text-emerald-400">Zero-Trust Decrypted Stream</span>
+            </div>
+          </div>
         </div>
-        <button onclick="closePreviewModal()" class="text-slate-400 hover:text-white p-1">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button id="btnModalDownload" onclick="handleRecipientDownload()" class="hidden px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold transition items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Download</span>
+          </button>
+          <button onclick="closePreviewModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
 
-      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-3 max-h-64 overflow-y-auto">
-        <div class="p-2 rounded bg-cyan-950/40 border border-cyan-500/30 text-[11px] text-cyan-300">
-          🔒 Confirmed View Event Logged — Session ID: <code id="sessionCode" class="font-bold">#SESSION-9921</code>
-        </div>
-        <p class="font-bold text-white">CONFIDENTIAL PROJECT SPECIFICATION & ARCHITECTURE</p>
-        <p class="text-slate-400 leading-relaxed">
-          This document contains proprietary zero-trust access policies, encrypted cryptographic hash registers, and authorized partner permissions.
-        </p>
-        <div class="border-t border-slate-800 pt-2 text-[11px] text-slate-500">
-          Status: Decrypted in sandbox memory for authorized recipient.
-        </div>
+      <!-- Real Document Content Viewer Area -->
+      <div id="previewViewerContainer" class="flex-1 w-full bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center">
+        <!-- Dynamic content injected here (PDF iframe, Image, Preformatted Text, etc.) -->
       </div>
 
-      <div class="flex justify-end pt-2">
-        <button onclick="closePreviewModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs">
-          Close Preview
+      <!-- Modal Footer -->
+      <div class="border-t border-slate-800/80 px-5 py-2.5 bg-slate-950/90 flex items-center justify-between text-[11px] font-mono text-slate-400 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span>Zero-Trust Sandbox Memory Stream</span>
+        </div>
+        <button onclick="closePreviewModal()" class="text-slate-400 hover:text-slate-200 font-bold">
+          Close Viewer &times;
         </button>
       </div>
     </div>
@@ -383,35 +396,171 @@
       lucide.createIcons();
     }
 
-    async function handleRecipientView() {
-      if (!currentShare || currentShare.status === 'REVOKED') return;
+    let activePreviewBlobUrl = null;
 
+    async function handleRecipientView() {
+      if (!currentShare || currentShare.status === 'REVOKED' || currentShare.status === 'EXPIRED') return;
+
+      const modal = document.getElementById('previewModal');
+      const previewDocTitle = document.getElementById('previewDocTitle');
+      const previewViewerContainer = document.getElementById('previewViewerContainer');
+      const previewSessionCode = document.getElementById('previewSessionCode');
+      const btnModalDownload = document.getElementById('btnModalDownload');
+
+      if (previewDocTitle) previewDocTitle.innerText = currentShare.filename || 'Protected Document';
+      if (previewSessionCode) previewSessionCode.innerText = `#SESSION-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      if (btnModalDownload) {
+        if (currentShare.allow_download !== false) {
+          btnModalDownload.classList.remove('hidden');
+          btnModalDownload.classList.add('flex');
+        } else {
+          btnModalDownload.classList.add('hidden');
+          btnModalDownload.classList.remove('flex');
+        }
+      }
+
+      // Show modal in loading state
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      previewViewerContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full space-y-3 py-16 text-cyan-400 font-mono text-xs">
+          <i data-lucide="loader" class="w-8 h-8 animate-spin text-cyan-400"></i>
+          <span class="font-bold tracking-wider">DECRYPTING PROTECTED FILE IN SANDBOX...</span>
+          <span class="text-slate-500 text-[11px]">${currentShare.filename || ''}</span>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      if (window.soundEngine) soundEngine.play('click');
+
+      // Record view timestamp & local tracking
       currentShare.viewed = true;
       currentShare.viewedAt = new Date().toISOString();
       saveShareData();
 
-      // Record VIEWED event on server
-      if (window.apiService && shareId && shareId !== 'cu-share-demo') {
-        try {
-          await apiService.recordShareView(shareId);
-        } catch(err) {
-          if (err.status === 403) {
-            currentShare.status = 'REVOKED';
-            saveShareData();
-            updateUI();
-            return;
+      try {
+        let blob = null;
+
+        // 1. Fetch real binary content from backend /content route (or fallback to /download)
+        if (window.apiService && shareId && shareId !== 'cu-share-demo') {
+          try {
+            blob = await apiService.getSharedFileBlob(shareId);
+          } catch (fetchErr) {
+            console.warn("Content route fallback, attempting download stream:", fetchErr);
+            blob = await apiService.request(`/shares/${shareId}/download`, {
+              method: "GET",
+              isBlob: true
+            });
           }
+        } else {
+          // Demo fallback
+          blob = new Blob([
+            "CyberUndo Zero-Trust Protected File Payload Demo.\nReal files uploaded to your secure vault will stream live decrypted content."
+          ], { type: "text/plain" });
         }
+
+        if (!blob || blob.size === 0) {
+          throw new Error("Unable to establish decrypted file stream from server.");
+        }
+
+        // Clean up any previously opened blob URL to free memory
+        if (activePreviewBlobUrl) {
+          window.URL.revokeObjectURL(activePreviewBlobUrl);
+          activePreviewBlobUrl = null;
+        }
+
+        const filename = currentShare.filename || 'document';
+        const ext = (filename.includes('.') ? filename.split('.').pop() : '').toLowerCase();
+
+        // 2. Render actual uploaded file according to type
+        if (ext === 'pdf' || blob.type === 'application/pdf') {
+          const pdfBlob = (blob.type === 'application/pdf') ? blob : new Blob([blob], { type: 'application/pdf' });
+          activePreviewBlobUrl = window.URL.createObjectURL(pdfBlob);
+          previewViewerContainer.innerHTML = `
+            <div class="w-full h-full bg-slate-900 flex flex-col">
+              <iframe 
+                id="pdfFrame" 
+                src="${activePreviewBlobUrl}#toolbar=1&navpanes=1" 
+                class="w-full h-full border-0 bg-slate-900" 
+                title="${filename}">
+              </iframe>
+            </div>
+          `;
+        } else if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext) || blob.type.startsWith('image/')) {
+          activePreviewBlobUrl = window.URL.createObjectURL(blob);
+          previewViewerContainer.innerHTML = `
+            <div class="w-full h-full flex items-center justify-center p-4 bg-slate-950/90 overflow-auto">
+              <img 
+                src="${activePreviewBlobUrl}" 
+                alt="${filename}" 
+                class="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-slate-800 select-none" />
+            </div>
+          `;
+        } else if (['txt', 'json', 'csv', 'log', 'md', 'js', 'py', 'html', 'css', 'xml', 'ts', 'sql', 'yaml', 'yml'].includes(ext) || blob.type.startsWith('text/')) {
+          const textContent = await blob.text();
+          const safeText = textContent
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          previewViewerContainer.innerHTML = `
+            <div class="w-full h-full p-6 overflow-auto bg-slate-950 text-slate-200">
+              <pre class="font-mono text-xs sm:text-sm whitespace-pre-wrap leading-relaxed select-text">${safeText}</pre>
+            </div>
+          `;
+        } else {
+          // Other binary files (e.g. .zip, .docx, .xlsx)
+          activePreviewBlobUrl = window.URL.createObjectURL(blob);
+          previewViewerContainer.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full p-8 text-center space-y-4 font-mono text-xs text-slate-300">
+              <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto">
+                <i data-lucide="file" class="w-8 h-8"></i>
+              </div>
+              <div>
+                <p class="font-bold text-white text-sm">${filename}</p>
+                <p class="text-slate-500 text-[11px] mt-1">${currentShare.fileSize || 'Encrypted File'} • ${blob.type || 'Decrypted File Payload'}</p>
+              </div>
+              <p class="text-slate-400 max-w-md text-xs leading-relaxed">
+                This document has been decrypted in sandbox memory.
+              </p>
+              ${currentShare.allow_download !== false ? `
+                <a href="${activePreviewBlobUrl}" download="${filename}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg transition">
+                  OPEN / SAVE DECRYPTED FILE
+                </a>
+              ` : `
+                <span class="text-amber-400 text-xs">Download restricted by policy.</span>
+              `}
+            </div>
+          `;
+        }
+
+        if (window.lucide) lucide.createIcons();
+
+        // Increment authoritative view count
+        currentShare.viewCount = (currentShare.viewCount || 0) + 1;
+        saveShareData();
+        updateUI();
+
+      } catch (err) {
+        console.error("Failed to render real file preview:", err);
+        if (err.status === 403 || (err.data && (err.data.status === 'revoked' || err.data.status === 'expired'))) {
+          currentShare.status = 'REVOKED';
+          saveShareData();
+          updateUI();
+          closePreviewModal();
+          alert("Access has been revoked by owner.");
+          return;
+        }
+
+        previewViewerContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full p-8 text-center space-y-3 font-mono text-xs text-red-400">
+            <i data-lucide="alert-triangle" class="w-8 h-8 text-red-400"></i>
+            <span class="font-bold">FAILED TO LOAD PROTECTED DOCUMENT</span>
+            <span class="text-slate-500 text-[11px] max-w-sm">${err.message || 'Unable to establish decrypted stream with secure server.'}</span>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
       }
-
-      const modal = document.getElementById('previewModal');
-      document.getElementById('previewDocTitle').innerText = currentShare.filename || 'Document Preview';
-      document.getElementById('sessionCode').innerText = `#SESSION-${Math.floor(1000 + Math.random() * 9000)}`;
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      if (window.soundEngine) soundEngine.play('click');
-      lucide.createIcons();
     }
 
     function closePreviewModal() {
@@ -419,6 +568,10 @@
       if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+      }
+      if (activePreviewBlobUrl) {
+        window.URL.revokeObjectURL(activePreviewBlobUrl);
+        activePreviewBlobUrl = null;
       }
     }
 
