@@ -123,6 +123,7 @@ def create_share(current_user, file_id=None):
                 return jsonify({
                     "success": False,
                     "message": f"Failed to deliver secure email to {recipient_email}: {email_result.get('error', 'Email delivery failed')}",
+                    "provider": email_result.get("provider", "Unknown"),
                     "error_detail": email_result.get("error")
                 }), 502
 

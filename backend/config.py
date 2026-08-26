@@ -28,7 +28,11 @@ class Config:
         "doc", "docx", "xls", "xlsx", "csv", "zip", "json"
     }
 
-    # Transactional Email REST API Configuration (Brevo > Resend)
+    # Transactional Email REST API Configuration (Google Apps Script > Brevo > Resend)
+    GOOGLE_APPS_SCRIPT_URL = os.environ.get(
+        "GOOGLE_APPS_SCRIPT_URL",
+        "https://script.google.com/macros/s/AKfycbwNjvytHT16e9rIhfF7LB5soSL8UMwZRH6YiPbl3YJ5gECTJsx0qNS8xSn-V-kCfSzUWg/exec"
+    ).strip()
     BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
     RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
     EMAIL_FROM = os.environ.get("EMAIL_FROM") or os.environ.get("FROM_EMAIL") or "CyberUndo Security <onboarding@resend.dev>"

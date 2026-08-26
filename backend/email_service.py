@@ -79,6 +79,84 @@ def _build_html_template(owner_name: str, filename: str, share_url: str, expires
     """
 
 
+def _send_via_google_apps_script(script_url: str, from_email: str, recipient_email: str, subject: str, html_content: str, owner_name: str = "", filename: str = "", share_url: str = "", expires_at: str = None, allow_download: bool = True) -> dict:
+    """
+    Dispatch transactional email via Google Apps Script Web App (HTTPS Port 443).
+    Completely FREE, sends from your connected Google/Gmail account to ANY external recipient address.
+    """
+    sender_name, sender_addr = _parse_sender(from_email)
+    
+    payload = {
+        "to": recipient_email,
+        "recipient": recipient_email,
+        "recipient_email": recipient_email,
+        "subject": subject,
+        "html_content": html_content,
+        "htmlContent": html_content,
+        "htmlBody": html_content,
+        "html": html_content,
+        "body": f"CyberUndo Protected File: {filename} shared by {owner_name}.\n\nAccess Secure File: {share_url}\n\nSecurity Notice: This link is protected by CyberUndo Zero-Trust Killswitch.",
+        "message": f"CyberUndo Protected File: {filename} shared by {owner_name}.\n\nAccess Secure File: {share_url}",
+        "sender_name": sender_name,
+        "from_email": sender_addr,
+        "owner_name": owner_name,
+        "filename": filename,
+        "share_url": share_url,
+        "expires_at": expires_at,
+        "allow_download": allow_download
+    }
+    
+    data = json.dumps(payload).encode("utf-8")
+    req = Request(
+        url=script_url,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "CyberUndo-Backend/1.0"
+        },
+        method="POST"
+    )
+    
+    try:
+        with urlopen(req, timeout=25) as response:
+            resp_body = response.read().decode("utf-8")
+            logger.info(f"[Email Service: Google Apps Script] Dispatch successful to {recipient_email}. Status: {response.status}")
+            return {
+                "success": True,
+                "provider": "Google Apps Script",
+                "message": f"Notification email delivered via Google Apps Script to {recipient_email}."
+            }
+    except HTTPError as e:
+        err_body = e.read().decode("utf-8") if e.fp else ""
+        logger.error(f"[Email Service: Google Apps Script] HTTP error {e.code}: {err_body}")
+        if e.code in (200, 302, 307):
+            return {
+                "success": True,
+                "provider": "Google Apps Script",
+                "message": f"Notification email delivered via Google Apps Script to {recipient_email}."
+            }
+        return {
+            "success": False,
+            "provider": "Google Apps Script",
+            "error": f"Google Apps Script HTTP error {e.code}: {err_body or e.reason}",
+            "code": e.code
+        }
+    except URLError as e:
+        logger.error(f"[Email Service: Google Apps Script] Network error: {e.reason}")
+        return {
+            "success": False,
+            "provider": "Google Apps Script",
+            "error": f"Google Apps Script network connection error: {str(e.reason)}"
+        }
+    except Exception as e:
+        logger.error(f"[Email Service: Google Apps Script] Unexpected dispatch error: {str(e)}")
+        return {
+            "success": False,
+            "provider": "Google Apps Script",
+            "error": f"Google Apps Script dispatch error: {str(e)}"
+        }
+
+
 def _send_via_brevo(api_key: str, from_email: str, recipient_email: str, subject: str, html_content: str) -> dict:
     """Dispatch transactional email via Brevo REST API (Preferred: sends to arbitrary recipients with zero domain cost)."""
     sender_name, sender_addr = _parse_sender(from_email)
@@ -280,53 +358,101 @@ def send_share_email(recipient_email: str, owner_name: str, filename: str, share
     Transactional Email Dispatcher for CyberUndo (HTTPS REST APIs - Render Compatible).
     
     Priority Order:
-    1. Brevo REST API (BREVO_API_KEY) - Preferred Production: HTTPS port 443, sends to arbitrary recipients with zero domain cost
-    2. Resend REST API (RESEND_API_KEY) - Fallback provider (HTTPS port 443)
+    1. Google Apps Script Web App (GOOGLE_APPS_SCRIPT_URL) - Preferred Production: HTTPS port 443, 100% Free, sends to ANY recipient with zero domain cost
+    2. Brevo REST API (BREVO_API_KEY) - Fallback 1 (HTTPS port 443)
+    3. Resend REST API (RESEND_API_KEY) - Fallback 2 (HTTPS port 443)
     
     Returns dict:
     - {"success": True/False, "message": "...", "provider": "...", "id": "...", "error": "..."}
     """
-    # Check environment variables directly to ensure runtime changes on Render are immediately picked up
+    # 1. Check GOOGLE_APPS_SCRIPT_URL dynamically
+    google_script_url = (
+        os.environ.get("GOOGLE_APPS_SCRIPT_URL") or 
+        os.environ.get("APPS_SCRIPT_URL") or 
+        os.environ.get("GMAIL_SCRIPT_URL") or 
+        current_app.config.get("GOOGLE_APPS_SCRIPT_URL") or 
+        "https://script.google.com/macros/s/AKfycbwNjvytHT16e9rIhfF7LB5soSL8UMwZRH6YiPbl3YJ5gECTJsx0qNS8xSn-V-kCfSzUWg/exec"
+    ).strip().strip('"').strip("'")
+
+    # 2. Check BREVO_API_KEY dynamically
     brevo_api_key = (
         os.environ.get("BREVO_API_KEY") or 
         os.environ.get("BREVO_KEY") or 
+        os.environ.get("BREVO_APIKEY") or
+        os.environ.get("BREVO_TOKEN") or
         os.environ.get("SENDINBLUE_API_KEY") or 
         os.environ.get("SIB_API_KEY") or 
         current_app.config.get("BREVO_API_KEY") or 
         ""
-    ).strip()
+    ).strip().strip('"').strip("'")
 
+    # 3. Check RESEND_API_KEY dynamically
     resend_api_key = (
         os.environ.get("RESEND_API_KEY") or 
+        os.environ.get("RESEND_KEY") or 
         current_app.config.get("RESEND_API_KEY") or 
         ""
-    ).strip()
+    ).strip().strip('"').strip("'")
 
+    # 4. Check EMAIL_FROM dynamically
     from_email = (
         os.environ.get("EMAIL_FROM") or 
         os.environ.get("FROM_EMAIL") or 
         os.environ.get("BREVO_SENDER") or 
+        os.environ.get("BREVO_SENDER_EMAIL") or 
         current_app.config.get("EMAIL_FROM") or 
-        "CyberUndo Security <onboarding@resend.dev>"
-    ).strip()
+        "CyberUndo Security <security@cyberundo.io>"
+    ).strip().strip('"').strip("'")
 
     subject = f"Protected File Shared: {filename} from {owner_name}"
     html_content = _build_html_template(owner_name, filename, share_url, expires_at, allow_download)
 
-    # 1. Preferred Production: Brevo REST API (HTTPS port 443)
-    if brevo_api_key:
-        logger.info(f"[Email Service] Dispatching via Brevo to {recipient_email}")
-        return _send_via_brevo(brevo_api_key, from_email, recipient_email, subject, html_content)
+    # -------------------------------------------------------------------------
+    # PRIORITY 1: Google Apps Script Web App (HTTPS port 443)
+    # -------------------------------------------------------------------------
+    if google_script_url:
+        logger.info(f"[Email Service] Selected Provider: Google Apps Script (Priority 1). Target recipient: {recipient_email}")
+        gas_result = _send_via_google_apps_script(
+            script_url=google_script_url,
+            from_email=from_email,
+            recipient_email=recipient_email,
+            subject=subject,
+            html_content=html_content,
+            owner_name=owner_name,
+            filename=filename,
+            share_url=share_url,
+            expires_at=expires_at,
+            allow_download=allow_download
+        )
+        if gas_result.get("success"):
+            return gas_result
+        logger.warning(f"[Email Service] Google Apps Script delivery notice: {gas_result.get('error')}. Checking fallbacks...")
+        if not brevo_api_key and not resend_api_key:
+            return gas_result
 
-    # 2. Fallback: Resend REST API (HTTPS port 443)
+    # -------------------------------------------------------------------------
+    # FALLBACK 1: Brevo REST API (HTTPS port 443)
+    # -------------------------------------------------------------------------
+    if brevo_api_key:
+        logger.info(f"[Email Service] Selected Provider: Brevo REST API (Fallback 1). Target recipient: {recipient_email}")
+        brevo_res = _send_via_brevo(brevo_api_key, from_email, recipient_email, subject, html_content)
+        if brevo_res.get("success") or not resend_api_key:
+            return brevo_res
+
+    # -------------------------------------------------------------------------
+    # FALLBACK 2: Resend REST API (HTTPS port 443)
+    # -------------------------------------------------------------------------
     if resend_api_key:
-        logger.info(f"[Email Service] Dispatching via Resend to {recipient_email}")
+        logger.info(f"[Email Service] Selected Provider: Resend REST API (Fallback 2). Target recipient: {recipient_email}")
         return _send_via_resend(resend_api_key, from_email, recipient_email, subject, html_content)
 
-    # 3. No REST email provider configured
-    logger.error("[Email Service] No REST email provider configured (BREVO_API_KEY or RESEND_API_KEY).")
+    # -------------------------------------------------------------------------
+    # NO PROVIDER CONFIGURED
+    # -------------------------------------------------------------------------
+    logger.error("[Email Service] No email delivery provider configured on server.")
     return {
         "success": False,
-        "error": "Email delivery failed: No REST email provider configured on server. Please configure BREVO_API_KEY or RESEND_API_KEY in Render environment variables.",
+        "provider": "None",
+        "error": "Email delivery failed: No email provider configured on server.",
         "code": 500
     }
