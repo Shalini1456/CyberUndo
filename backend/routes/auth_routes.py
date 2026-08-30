@@ -1,5 +1,6 @@
 import re
-from flask import Blueprint, request, jsonify
+import hmac
+from flask import Blueprint, request, jsonify, current_app
 from database import db
 from models import User
 from auth import hash_password, check_password, generate_jwt, token_required
@@ -131,3 +132,63 @@ def get_current_user(current_user):
             "user": current_user.to_dict()
         }
     }), 200
+
+
+@auth_bp.route("/admin/users", methods=["GET"])
+def get_all_users_admin():
+    """
+    Temporary read-only endpoint to inspect registered users in production.
+    Protected strictly with ADMIN_SECRET environment variable.
+    """
+    configured_secret = current_app.config.get("ADMIN_SECRET", "").strip()
+
+    # If ADMIN_SECRET is not configured or is empty, lock the endpoint completely
+    if not configured_secret:
+        return jsonify({
+            "success": False,
+            "message": "Unauthorized admin access. ADMIN_SECRET is not configured on the server."
+        }), 401
+
+    # Extract secret from header (X-Admin-Secret or Bearer token) or query string (?secret=...)
+    provided_secret = request.headers.get("X-Admin-Secret", "").strip()
+    if not provided_secret:
+        auth_header = request.headers.get("Authorization", "").strip()
+        if auth_header.lower().startswith("bearer "):
+            provided_secret = auth_header[7:].strip()
+        elif auth_header:
+            provided_secret = auth_header
+    if not provided_secret:
+        provided_secret = request.args.get("secret", "").strip()
+
+    # Constant-time comparison to prevent timing attacks
+    if not provided_secret or not hmac.compare_digest(provided_secret, configured_secret):
+        return jsonify({
+            "success": False,
+            "message": "Unauthorized admin access. Invalid or missing secret."
+        }), 401
+
+    try:
+        users = User.query.order_by(User.id.asc()).all()
+        return jsonify({
+            "success": True,
+            "message": f"Retrieved {len(users)} registered user(s).",
+            "data": {
+                "count": len(users),
+                "users": [
+                    {
+                        "id": u.id,
+                        "name": u.name,
+                        "email": u.email,
+                        "created_at": u.created_at.isoformat() if u.created_at else None
+                    }
+                    for u in users
+                ]
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Failed to retrieve users: {str(e)}"
+        }), 500
+

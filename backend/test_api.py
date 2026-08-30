@@ -193,3 +193,51 @@ def test_file_ownership_isolation(client):
     # User B attempts to download User A's file -> 403 Forbidden
     res_b_dl = client.get(f"/api/files/{file_id}/download", headers=headers_b)
     assert res_b_dl.status_code == 403
+
+
+def test_admin_users_endpoint(client):
+    """Test /api/admin/users endpoint with secret validation."""
+    # 1. No ADMIN_SECRET configured on server -> 401
+    client.application.config["ADMIN_SECRET"] = ""
+    res = client.get("/api/admin/users")
+    assert res.status_code == 401
+    assert res.get_json()["success"] is False
+
+    # Configure ADMIN_SECRET
+    client.application.config["ADMIN_SECRET"] = "super-secret-admin-key-123"
+
+    # 2. Missing secret in request -> 401
+    res_no_sec = client.get("/api/admin/users")
+    assert res_no_sec.status_code == 401
+
+    # 3. Invalid secret in request -> 401
+    res_wrong_sec = client.get("/api/admin/users", headers={"X-Admin-Secret": "wrong-secret"})
+    assert res_wrong_sec.status_code == 401
+
+    # Register two test users
+    client.post("/api/register", json={"name": "Alice Admin", "email": "alice_admin@test.com", "password": "password123"})
+    client.post("/api/register", json={"name": "Bob Admin", "email": "bob_admin@test.com", "password": "password456"})
+
+    # 4. Valid secret via X-Admin-Secret header -> 200
+    res_header = client.get("/api/admin/users", headers={"X-Admin-Secret": "super-secret-admin-key-123"})
+    assert res_header.status_code == 200
+    data = res_header.get_json()
+    assert data["success"] is True
+    assert data["data"]["count"] == 2
+    users = data["data"]["users"]
+    assert users[0]["name"] == "Alice Admin"
+    assert users[0]["email"] == "alice_admin@test.com"
+    assert "password_hash" not in users[0]
+    assert users[1]["name"] == "Bob Admin"
+    assert users[1]["email"] == "bob_admin@test.com"
+
+    # 5. Valid secret via query string -> 200
+    res_query = client.get("/api/admin/users?secret=super-secret-admin-key-123")
+    assert res_query.status_code == 200
+    assert res_query.get_json()["data"]["count"] == 2
+
+    # 6. Valid secret via Authorization Bearer header -> 200
+    res_bearer = client.get("/api/admin/users", headers={"Authorization": "Bearer super-secret-admin-key-123"})
+    assert res_bearer.status_code == 200
+    assert res_bearer.get_json()["data"]["count"] == 2
+

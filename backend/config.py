@@ -9,6 +9,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "cyberundo-dev-super-secret-key-change-in-production")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "cyberundo-jwt-secret-key-change-in-production")
     JWT_EXPIRATION_DELTA = timedelta(days=1)  # Tokens valid for 24 hours
+    ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip()
 
     # Database: SQLite stored in the backend folder
     SQLALCHEMY_DATABASE_URI = os.environ.get(
