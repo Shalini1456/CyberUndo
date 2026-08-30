@@ -7,13 +7,15 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 def get_database_uri() -> str:
     """
     Resolve and normalize database URI for PostgreSQL/Supabase or local SQLite.
-    Handles legacy 'postgres://' prefixes and converts to 'postgresql://'.
+    Normalizes 'postgres://' and 'postgresql://' to 'postgresql+psycopg://' for psycopg (psycopg3).
     """
     raw_url = os.environ.get("DATABASE_URL", "").strip()
     if not raw_url:
         return f"sqlite:///{os.path.join(BASE_DIR, 'cyberundo.db')}"
     if raw_url.startswith("postgres://"):
-        raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+        raw_url = raw_url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+"):
+        raw_url = raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
     return raw_url
 
 
