@@ -8,6 +8,7 @@ def get_database_uri() -> str:
     """
     Resolve and normalize database URI for PostgreSQL/Supabase or local SQLite.
     Normalizes 'postgres://' and 'postgresql://' to 'postgresql+psycopg://' for psycopg (psycopg3).
+    Ensures SSL mode is enabled for Supabase pooler connections.
     """
     raw_url = os.environ.get("DATABASE_URL", "").strip()
     if not raw_url:
@@ -16,6 +17,12 @@ def get_database_uri() -> str:
         raw_url = raw_url.replace("postgres://", "postgresql+psycopg://", 1)
     elif raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+"):
         raw_url = raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    # Ensure sslmode=require for Supabase cloud PostgreSQL connections
+    if ("pooler.supabase.com" in raw_url or "supabase.co" in raw_url) and "sslmode=" not in raw_url:
+        separator = "&" if "?" in raw_url else "?"
+        raw_url = f"{raw_url}{separator}sslmode=require"
+
     return raw_url
 
 
