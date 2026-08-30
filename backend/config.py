@@ -11,12 +11,19 @@ class Config:
     JWT_EXPIRATION_DELTA = timedelta(days=1)  # Tokens valid for 24 hours
     ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip()
 
-    # Database: SQLite stored in the backend folder
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
+    # Database: Supabase PostgreSQL (via DATABASE_URL) or local SQLite fallback
+    raw_db_url = os.environ.get(
         "DATABASE_URL", 
         f"sqlite:///{os.path.join(BASE_DIR, 'cyberundo.db')}"
-    )
+    ).strip()
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = raw_db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300
+    }
 
     # Uploads configuration
     UPLOAD_FOLDER = os.environ.get(
