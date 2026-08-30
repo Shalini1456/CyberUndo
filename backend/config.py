@@ -16,8 +16,8 @@ class Config:
         "DATABASE_URL", 
         f"sqlite:///{os.path.join(BASE_DIR, 'cyberundo.db')}"
     ).strip()
-   if raw_db_url.startswith("postgres://"):
-    raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg://", 1)
+      if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql+psycopg://", 1)
     SQLALCHEMY_DATABASE_URI = raw_db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
